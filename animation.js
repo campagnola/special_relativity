@@ -164,6 +164,12 @@ export function makeAnimCanvas(canvas) {
             ctx.lineWidth = 2;
             ctx.stroke();
             ctx.restore();
+
+            // Draw proper time text to the right of the clock
+            ctx.fillStyle = 'white';
+            ctx.font = '12px system-ui';
+            ctx.textAlign = 'left';
+            ctx.fillText(pt.toFixed(1), px + baseR + 5, y + 4);
         }
     }
 

@@ -90,6 +90,7 @@ function loadState(state) {
     document.getElementById('dur').value = appState.duration;
     document.getElementById('speed').value = appState.animSpeed;
     document.getElementById('animate').checked = appState.animate;
+    document.getElementById('time-slider').max = appState.duration;
     renderObjects();
 
     recalculate(); // Python calls this directly
@@ -232,6 +233,8 @@ document.getElementById('add-grid').addEventListener('click', () => {
 
 document.getElementById('dur').addEventListener('input', e => {
     appState.duration = +e.target.value || 20;
+    // Update slider max value
+    document.getElementById('time-slider').max = appState.duration;
     markDirty();
 });
 document.getElementById('speed').addEventListener('input', e => {
@@ -243,7 +246,47 @@ document.getElementById('reference').addEventListener('change', e => {
 });
 document.getElementById('animate').addEventListener('change', e => {
     appState.animate = e.target.checked;
-    if (appState.animate) rafStart();
+    if (appState.animate) {
+        rafStart();
+    } else {
+        // Stop animation but keep visuals at current state
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+        }
+    }
+});
+
+// Time slider event handlers
+const timeSlider = document.getElementById('time-slider');
+timeSlider.addEventListener('mousedown', () => {
+    sliderDragging = true;
+    wasAnimatingBeforeDrag = appState.animate;
+    // Don't stop the RAF loop, just prevent time updates
+});
+
+timeSlider.addEventListener('input', e => {
+    animTime = parseFloat(e.target.value);
+    // Force visual update even when animation is paused
+    updateVisuals();
+});
+
+timeSlider.addEventListener('mouseup', () => {
+    sliderDragging = false;
+    // Restore animation state if it was running before drag
+    if (wasAnimatingBeforeDrag && !appState.animate) {
+        // This case shouldn't happen, but handle it anyway
+    }
+});
+
+// Also handle touch events for mobile
+timeSlider.addEventListener('touchstart', () => {
+    sliderDragging = true;
+    wasAnimatingBeforeDrag = appState.animate;
+});
+
+timeSlider.addEventListener('touchend', () => {
+    sliderDragging = false;
 });
 
 const plotInertial = makeWorldlinePlot(document.getElementById('plot-inertial'));
@@ -263,22 +306,16 @@ renderObjects();
 // Load preset on startup like Python: win.loadPreset(None, 'Twin Paradox (grid)')
 loadPreset('Twin Paradox (grid)');
 
+// Time slider state
+let sliderDragging = false;
+let wasAnimatingBeforeDrag = false;
+
 // animation loop
 let rafId = 0;
 let lastAnimTime = performance.now() / 1000;
 let animTime = 0;
 
-function tick() {
-    const now = performance.now() / 1000;
-    const dt = (now - lastAnimTime) * appState.animSpeed;
-    lastAnimTime = now;
-    animTime += dt;
-
-    // Reset animation time when exceeding duration (like Python)
-    if (animTime > appState.duration) {
-        animTime = 0;
-    }
-
+function updateVisuals() {
     // update animated spacelines if results exist
     const plots = appState._plots;
     if (plots) {
@@ -299,6 +336,31 @@ function tick() {
     }
     animInertial.draw(animTime);
     animRef.draw(animTime);
+}
+
+function tick() {
+    const now = performance.now() / 1000;
+
+    // Only advance time if not dragging slider
+    if (!sliderDragging) {
+        const dt = (now - lastAnimTime) * appState.animSpeed;
+        animTime += dt;
+
+        // Reset animation time when exceeding duration (like Python)
+        if (animTime > appState.duration) {
+            animTime = 0;
+        }
+    }
+
+    lastAnimTime = now;
+
+    // Update slider position if not being dragged
+    if (!sliderDragging) {
+        const timeSlider = document.getElementById('time-slider');
+        timeSlider.value = animTime;
+    }
+
+    updateVisuals();
     rafId = appState.animate ? requestAnimationFrame(tick) : 0;
 }
 

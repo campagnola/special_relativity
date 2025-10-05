@@ -122,10 +122,13 @@ summary {
 }
 
 .obj-card {
+  margin:8px 0;
+}
+
+.obj-card details {
   border:1px solid #27304a;
   border-radius:8px;
   padding:8px;
-  margin:8px 0;
   background:#0f1422;
 }
 

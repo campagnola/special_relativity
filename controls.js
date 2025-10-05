@@ -91,7 +91,7 @@ export function renderClock(o, idx, appState, callbacks) {
         markDirty();
     });
     function updateCardBorder() {
-        card.style.borderColor = colorHex(o.color);
+        card.querySelector('details').style.borderColor = colorHex(o.color);
     }
     updateCardBorder();
 
@@ -229,7 +229,7 @@ export function renderGrid(o, idx, appState, callbacks) {
     u('t0', 't0');
     u('size', 'size');
     function updateCardBorder() {
-        card.style.borderColor = colorHex(t.color);
+        card.querySelector('details').style.borderColor = colorHex(t.color);
     }
     updateCardBorder();
 
