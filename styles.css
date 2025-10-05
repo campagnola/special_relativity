@@ -62,10 +62,22 @@ main {
 
 .panel {
   display:grid;
-  grid-template-rows: 80% 20%;  /* Explicit percentages to match Python exactly */
+  grid-template-rows: auto 76% 20%;  /* Label, plot (reduced slightly), animation */
   gap:6px;
   min-height:0;
   height:100%;
+}
+
+.frame-label {
+  font-size:14px;
+  font-weight:600;
+  color:var(--fg);
+  margin:0;
+  padding:4px 8px;
+  text-align:center;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:6px 6px 0 0;
 }
 
 canvas {

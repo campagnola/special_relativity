@@ -122,6 +122,11 @@ export class Clock {
         if (tau < p[0][0] - 1e-12) return 0;
         return p[this._progIdx][1] || 0;
     }
+
+    force() {
+        // Python: return self.force(t) where t=self.pt by default
+        return this.accelAt(this.pt) * this.m0;
+    }
     accelLimits() {
         const p = this.prog || [];
         // Handle empty program like Python: return (-inf, inf)

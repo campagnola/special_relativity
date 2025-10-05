@@ -109,33 +109,6 @@ export function makeAnimCanvas(canvas) {
             const baseR = c.size * 10; // clock.size is diameter in data units, scale to pixels
             const sx = invGamma(v); // length contraction factor (1/gamma)
 
-            // draw arrow indicating force (flare)
-            // Python: setPen(pg.mkPen('y')) + setBrush(pg.mkBrush(255,150,0))
-            const arrowLen = Math.min(40, Math.abs(f) * 18); // scale factor chosen to resemble Python visual
-            const arrowDir = Math.sign(f) || 0; // + pushes to +x
-            if (arrowDir !== 0) {
-                ctx.save();
-                ctx.translate(px, y);
-
-                // Draw flare as triangle (Python's QPolygonF)
-                ctx.beginPath();
-                ctx.moveTo(-arrowDir * baseR * 0.25, -baseR * 0.25);  // top vertex
-                ctx.lineTo(-arrowDir * baseR * 0.25, baseR * 0.25);   // bottom vertex
-                ctx.lineTo(arrowDir * arrowLen, 0);                   // tip vertex
-                ctx.closePath();
-
-                // Fill with orange (Python: pg.mkBrush(255,150,0))
-                ctx.fillStyle = 'rgb(255,150,0)';
-                ctx.fill();
-
-                // Outline with yellow (Python: pg.mkPen('y'))
-                ctx.strokeStyle = 'yellow';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-
-                ctx.restore();
-            }
-
             // draw contracted body as an ellipse (scale X by sx)
             // Python: setPen(pg.mkPen(100,100,100)) + setBrush(clock.brush)
             ctx.save();
@@ -170,6 +143,33 @@ export function makeAnimCanvas(canvas) {
             ctx.font = '12px system-ui';
             ctx.textAlign = 'left';
             ctx.fillText(pt.toFixed(1), px + baseR + 5, y + 4);
+
+            // draw arrow indicating force (flare) - AFTER clock body so it's visible
+            // Python: setPen(pg.mkPen('y')) + setBrush(pg.mkBrush(255,150,0))
+            const arrowLen = Math.min(40, Math.abs(f) * 18); // back to original scale
+            const arrowDir = Math.sign(f) || 0; // + pushes to +x
+            if (arrowDir !== 0) {
+                ctx.save();
+                ctx.translate(px, y);
+
+                // Draw flare as triangle (Python's QPolygonF)
+                ctx.beginPath();
+                ctx.moveTo(-arrowDir * baseR * 0.25, -baseR * 0.25);  // top vertex
+                ctx.lineTo(-arrowDir * baseR * 0.25, baseR * 0.25);   // bottom vertex
+                ctx.lineTo(arrowDir * arrowLen, 0);                   // tip vertex
+                ctx.closePath();
+
+                // Fill with orange (Python: pg.mkBrush(255,150,0))
+                ctx.fillStyle = 'rgb(255,150,0)';
+                ctx.fill();
+
+                // Outline with yellow (Python: pg.mkPen('y'))
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.restore();
+            }
         }
     }
 

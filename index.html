@@ -18,7 +18,6 @@
         <div class="row"><label for="reference">Reference Frame</label><select id="reference"></select></div>
         <div class="row"><label for="animate">Animate</label><input id="animate" type="checkbox" checked></div>
         <div class="row"><label for="time-slider">Time</label><input id="time-slider" type="range" min="0" max="10" step="0.01" value="0"></div>
-        <div class="row"><button id="recalc" class="primary" disabled>Recalculate Worldlines</button></div>
       </details>
       <details open>
         <summary>Objects</summary>
@@ -32,10 +31,12 @@
     </aside>
     <main>
       <section class="panel">
+        <h2 id="inertial-label" class="frame-label">Inertial (lab) Frame [ t=0.0 ]</h2>
         <canvas id="plot-inertial"></canvas>
         <canvas id="anim-inertial"></canvas>
       </section>
       <section class="panel">
+        <h2 id="ref-label" class="frame-label">Reference Frame [ t=0.0 ]</h2>
         <canvas id="plot-ref"></canvas>
         <canvas id="anim-ref"></canvas>
       </section>

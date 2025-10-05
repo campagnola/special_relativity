@@ -180,11 +180,9 @@ function validateObjects() {
     if (msgs.length) {
         errBox.hidden = false;
         errBox.textContent = msgs.join('\n');
-        $('recalc').disabled = true;
     } else {
         errBox.hidden = true;
         errBox.textContent = '';
-        if (appState.dirty) $('recalc').disabled = false;
     }
 }
 
@@ -199,12 +197,12 @@ function renderObjects() {
 }
 
 function markDirty() {
-    document.getElementById('recalc').disabled = false;
     appState.dirty = true;
+    // Auto-recalculate immediately
+    recalculate();
 }
 
 function markClean() {
-    document.getElementById('recalc').disabled = true;
     appState.dirty = false;
 }
 
@@ -243,6 +241,7 @@ document.getElementById('speed').addEventListener('input', e => {
 document.getElementById('reference').addEventListener('change', e => {
     appState.reference = e.target.value;
     markDirty();
+    updateFrameLabels(); // Update labels immediately when reference changes
 });
 document.getElementById('animate').addEventListener('change', e => {
     appState.animate = e.target.checked;
@@ -298,7 +297,7 @@ const animRef = makeAnimCanvas(document.getElementById('anim-ref'));
 plotInertial.linkXAxis(animInertial);
 plotRef.linkXAxis(animRef);
 
-document.getElementById('recalc').addEventListener('click', recalculate);
+// Auto-recalculation replaces manual button
 
 // seed UI
 renderObjects();
@@ -354,6 +353,19 @@ function updateVisuals() {
     }
     animInertial.draw(animTime);
     animRef.draw(animTime);
+
+    // Update frame labels with current time
+    updateFrameLabels();
+}
+
+function updateFrameLabels() {
+    const inertialLabel = document.getElementById('inertial-label');
+    const refLabel = document.getElementById('ref-label');
+
+    inertialLabel.textContent = `Inertial (lab) Frame [ t=${animTime.toFixed(1)} ]`;
+
+    const refName = appState.reference || 'Reference';
+    refLabel.textContent = `${refName}'s Frame [ t=${animTime.toFixed(1)} ]`;
 }
 
 function tick() {
