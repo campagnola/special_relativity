@@ -114,6 +114,20 @@ input, select, button {
   min-width:0; /* Allow shrinking below content size */
 }
 
+/* Speed label styling */
+#speed-label {
+  color:var(--fg);
+  font-size:13px;
+  font-weight:600;
+  min-width:50px;
+  text-align:center;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:4px 8px;
+  margin-left:8px;
+}
+
 /* Style number input spin buttons for dark theme */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -462,4 +476,20 @@ pre.log {
 
 .modal-body strong {
   color: var(--fg);
+}
+
+/* Preset Management */
+.preset-current {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0;
+  padding: 4px 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.preset-current span {
+  color: var(--fg);
+  font-weight: 600;
 }

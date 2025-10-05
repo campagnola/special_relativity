@@ -13,9 +13,32 @@
       <div class="note">Simulator ported from <a href="https://github.com/campagnola/relativipy" target="_blank">github.com/campagnola/relativipy</a></div>
       <button id="help-btn" class="help-button">Help</button>
       <details open>
+        <summary>Presets</summary>
+        <div class="preset-current">
+          Current: <span id="current-preset">Twin Paradox (grid)</span>
+        </div>
+        <div class="row">
+          <label for="preset-select">Load Preset</label>
+          <select id="preset-select">
+            <option value="">Select preset...</option>
+            <option value="Twin Paradox (grid)">Twin Paradox (grid)</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="preset-name" type="text" placeholder="Enter preset name..." title="Name for saving current configuration">
+          <button id="save-preset" title="Save current configuration as preset">Save</button>
+        </div>
+        <div class="row">
+          <button id="delete-preset" title="Delete selected user-defined preset">Delete</button>
+          <button id="export-presets" title="Export all presets to file">Export</button>
+          <button id="import-presets" title="Import presets from file">Import</button>
+        </div>
+        <input id="import-file" type="file" accept=".json" hidden>
+      </details>
+      <details open>
         <summary>Simulation</summary>
         <div class="row"><label for="dur">Duration</label><input id="dur" type="number" min="0.1" step="0.1" value="20.0" title="Total simulation time in arbitrary units"></div>
-        <div class="row"><label for="speed">Animation Speed</label><input id="speed" type="number" min="0.0001" step="0.1" value="1" title="Animation playback speed (0.0001x to 10x normal speed)"></div>
+        <div class="row"><label for="speed">Animation Speed</label><input id="speed" type="range" min="0" max="100" value="50" title="Animation playback speed (0.01x to 100x normal speed)"><span id="speed-label">1.0x</span></div>
         <div class="row"><label for="reference">Reference Frame</label><select id="reference" title="Choose which clock's reference frame to view from"></select></div>
         <div class="row"><label for="animate">Animate</label><input id="animate" type="checkbox" checked title="Toggle real-time animation on/off"></div>
         <div class="row"><label for="time-slider">Time</label><input id="time-slider" type="range" min="0" max="10" step="0.01" value="0" title="Manually scrub through simulation time"></div>
