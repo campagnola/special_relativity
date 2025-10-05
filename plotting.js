@@ -28,7 +28,8 @@ export function makeWorldlinePlot(canvas) {
     let data = {
         lines: [],
         dots: [],
-        spaceline: null
+        spaceline: null,
+        currentMarkers: []
     };
     let view = {
         xmin: 0,
@@ -125,6 +126,11 @@ export function makeWorldlinePlot(canvas) {
         const W = canvas.width / dpr,
             H = canvas.height / dpr;
         ctx.clearRect(0, 0, W, H);
+
+        // Draw black background for plot area
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+
         ctx.strokeStyle = '#24304a';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -204,18 +210,45 @@ export function makeWorldlinePlot(canvas) {
         }
     }
 
+    function drawCurrentMarkers() {
+        for (const marker of data.currentMarkers) {
+            const [px, py] = worldToPx(marker.x, marker.t);
+
+            // Use the clock's defined size, scaled appropriately for plot markers
+            const radius = (marker.size || 1) * 4; // Convert clock size to pixel radius
+
+            ctx.beginPath();
+            ctx.arc(px, py, radius, 0, Math.PI * 2);
+
+            // Fill with clock color
+            ctx.fillStyle = marker.color;
+            ctx.fill();
+
+            // Gray outline to match 1D animation markers
+            ctx.strokeStyle = 'rgb(100,100,100)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+    }
+
     function drawSpaceline() {
         const sl = data.spaceline;
         if (!sl) return;
         const {
             x0,
             y0,
-            v
+            v,
+            color
         } = sl;
         const xmin = view.xmin,
             xmax = view.xmax,
             ymin = view.ymin,
             ymax = view.ymax;
+
+        // Reference clock position in screen coordinates
+        const [refPx, refPy] = worldToPx(x0, y0);
+
+        // Find intersection points with view boundaries
         const pts = [];
         const atX = x => y0 + v * (x - x0);
         const atT = t => x0 + (t - y0) / v;
@@ -230,18 +263,48 @@ export function makeWorldlinePlot(canvas) {
             if (xT >= xmin && xT <= xmax) pts.push([xT, ymax]);
         }
         if (pts.length < 2) return;
+
+        // Sort points and convert to screen coordinates
         pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-        const pA = pts[0],
-            pB = pts[pts.length - 1];
-        const [ax, ay] = worldToPx(pA[0], pA[1]);
-        const [bx, by] = worldToPx(pB[0], pB[1]);
-        ctx.strokeStyle = '#7adfff';
+        const screenPts = pts.map(p => worldToPx(p[0], p[1]));
+
+        // Find the leftmost and rightmost points
+        const leftPt = screenPts[0];
+        const rightPt = screenPts[screenPts.length - 1];
+
+        // Use reference object color but make it lighter
+        const lightenColor = (colorStr) => {
+            if (!colorStr) return '#7adfff'; // fallback to original color
+            // Parse rgba() format
+            const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+            if (!match) return '#7adfff'; // fallback
+            const [, r, g, b] = match.map(Number);
+            // Lighten by mixing with white (increase RGB values towards 255)
+            const lighten = (c) => Math.round(c + (255 - c) * 0.6);
+            return `rgb(${lighten(r)}, ${lighten(g)}, ${lighten(b)})`;
+        };
+
+        ctx.strokeStyle = lightenColor(color);
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(bx, by);
-        ctx.stroke();
+
+        // Draw two separate lines from reference position to avoid dash shifting
+        // Line from reference to left boundary
+        if (leftPt[0] < refPx) {
+            ctx.beginPath();
+            ctx.moveTo(refPx, refPy);
+            ctx.lineTo(leftPt[0], leftPt[1]);
+            ctx.stroke();
+        }
+
+        // Line from reference to right boundary
+        if (rightPt[0] > refPx) {
+            ctx.beginPath();
+            ctx.moveTo(refPx, refPy);
+            ctx.lineTo(rightPt[0], rightPt[1]);
+            ctx.stroke();
+        }
+
         ctx.setLineDash([]);
     }
 
@@ -250,6 +313,7 @@ export function makeWorldlinePlot(canvas) {
         drawAxes();
         drawLines();
         drawDots();
+        drawCurrentMarkers();
         drawSpaceline();
     }
     const host = canvas.parentElement || canvas;
@@ -266,12 +330,17 @@ export function makeWorldlinePlot(canvas) {
             data = Object.assign({
                 lines: [],
                 dots: [],
-                spaceline: null
+                spaceline: null,
+                currentMarkers: []
             }, d || {});
             draw();
         },
         setSpaceline(sl) {
             data.spaceline = sl || null;
+            draw();
+        },
+        setCurrentMarkers(markers) {
+            data.currentMarkers = markers || [];
             draw();
         },
         draw,
@@ -340,6 +409,7 @@ export function getSpaceline(sim, mode, i) {
     return {
         x0,
         y0,
-        v
+        v,
+        color: ref.colorCss()
     };
 }

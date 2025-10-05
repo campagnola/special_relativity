@@ -104,6 +104,57 @@ input, select, button {
   min-width:0; /* Allow shrinking below content size */
 }
 
+/* Style number input spin buttons for dark theme */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Style range slider for dark theme */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #2a3248;
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--fg);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-track {
+  background: #2a3248;
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: var(--fg);
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
 button.primary {
   background:#19233a;
   border-color:#2a3b66;
@@ -193,11 +244,31 @@ summary {
   align-items:center;
 }
 
+.accel-label {
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+  margin:8px 0 4px 0;
+}
+
 .accel {
   width:100%;
   table-layout:fixed;
   border-collapse:collapse;
   margin-top:6px;
+}
+
+.accel th:nth-child(1), .accel td:nth-child(1) {
+  width:25%; /* τ column - reduced from ~33% */
+}
+
+.accel th:nth-child(2), .accel td:nth-child(2) {
+  width:25%; /* a column - reduced from ~33% */
+}
+
+.accel th:nth-child(3), .accel td:nth-child(3) {
+  width:50%; /* Actions column - increased from ~33% */
 }
 
 .accel th, .accel td {
@@ -235,6 +306,21 @@ summary {
 
 .accel td.actions {
   text-align:left;
+}
+
+.accel td.actions button {
+  border:none;
+  padding:2px 4px;
+  margin:0 1px;
+  background:transparent;
+  color:var(--muted);
+  font-size:11px;
+  cursor:pointer;
+}
+
+.accel td.actions button:hover {
+  background:var(--border);
+  color:var(--fg);
 }
 
 .err {

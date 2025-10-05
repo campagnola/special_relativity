@@ -316,7 +316,7 @@ let lastAnimTime = performance.now() / 1000;
 let animTime = 0;
 
 function updateVisuals() {
-    // update animated spacelines if results exist
+    // update animated spacelines and current markers if results exist
     const plots = appState._plots;
     if (plots) {
         const {
@@ -328,10 +328,28 @@ function updateVisuals() {
         if (sim1) {
             const i = Math.min(sim1.frames - 1, Math.floor(animTime / sim1.dt));
             plotInertial.setSpaceline(getSpaceline(sim1, 'inert', i));
+
+            // Calculate current position markers for all clocks
+            const markers1 = sim1.clocks.map(clock => {
+                const buffer = clock.inert;
+                const x = buffer.x[i];
+                const t = buffer.t[i];
+                return { x, t, color: clock.colorCss(), size: clock.size };
+            });
+            plotInertial.setCurrentMarkers(markers1);
         }
         if (sim2) {
             const i = Math.min(sim2.frames - 1, Math.floor(animTime / sim2.dt));
             plotRef.setSpaceline(getSpaceline(sim2, 'ref', i));
+
+            // Calculate current position markers for all clocks
+            const markers2 = sim2.clocks.map(clock => {
+                const buffer = clock.ref;
+                const x = buffer.x[i];
+                const t = buffer.t[i];
+                return { x, t, color: clock.colorCss(), size: clock.size };
+            });
+            plotRef.setCurrentMarkers(markers2);
         }
     }
     animInertial.draw(animTime);
