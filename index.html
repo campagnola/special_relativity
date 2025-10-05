@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Relativity Simulator (Step 4 – Plotting)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <h1>Relativity (JS) — Step 4</h1>
+      <div class="note">Plotting implemented: worldlines + proper‑time tick dots + optional spaceline. Plots auto‑fit; no pan/zoom.</div>
+      <details open>
+        <summary>Simulation</summary>
+        <div class="row"><label for="dur">Duration</label><input id="dur" type="number" min="0.1" step="0.1" value="20.0"></div>
+        <div class="row"><label for="speed">Animation Speed</label><input id="speed" type="number" min="0.0001" step="0.1" value="1"></div>
+        <div class="row"><label for="reference">Reference Frame</label><select id="reference"></select></div>
+        <div class="row"><label for="animate">Animate</label><input id="animate" type="checkbox" checked></div>
+        <div class="row"><button id="recalc" class="primary" disabled>Recalculate Worldlines</button></div>
+      </details>
+      <details open>
+        <summary>Objects</summary>
+        <div class="row">
+          <label>Add New..</label>
+          <select id="add-type"><option value="clock">Clock</option><option value="grid">Grid</option></select>
+          <button id="add">Add</button>
+        </div>
+        <div id="objects"></div>
+        <div class="err" id="obj-errors" hidden></div>
+      </details>
+      <details>
+        <summary>Tests</summary>
+        <div class="row"><button id="run-ui-tests">Run Smoke Test</button></div>
+        <pre class="log" id="test-log"></pre>
+      </details>
+    </aside>
+    <main>
+      <section class="panel">
+        <canvas id="plot-inertial"></canvas>
+        <canvas id="anim-inertial"></canvas>
+      </section>
+      <section class="panel">
+        <canvas id="plot-ref"></canvas>
+        <canvas id="anim-ref"></canvas>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

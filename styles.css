@@ -1,0 +1,170 @@
+/* ABOUTME: CSS styling for the relativity simulator interface */
+/* ABOUTME: Dark theme with physics simulation layout and controls */
+
+:root {
+  --bg:#0b0c0f;
+  --fg:#e8eaf0;
+  --muted:#9aa3b2;
+  --panel:#151823;
+  --border:#22283a;
+}
+
+html, body {
+  height:100%;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+}
+
+.app {
+  display:grid;
+  grid-template-columns: 340px 1fr;
+  grid-template-rows: 100%;
+  height:100%;
+}
+
+aside {
+  background:var(--panel);
+  border-right:1px solid var(--border);
+  padding:12px;
+  overflow:auto;
+}
+
+aside h1 {
+  font-size:16px;
+  margin:0 0 8px;
+}
+
+aside .note {
+  color:var(--muted);
+  margin:8px 0 12px;
+}
+
+main {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap:8px;
+  padding:8px;
+}
+
+.panel {
+  display:grid;
+  grid-template-rows: 1fr 1fr;
+  gap:6px;
+  min-height:0;
+}
+
+canvas {
+  width:100%;
+  height:100%;
+  display:block;
+  background:#0e111a;
+  border:1px solid #1a2030;
+  border-radius:8px;
+}
+
+.row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:6px 0;
+}
+
+label {
+  color:var(--muted);
+  font-size:12px;
+  min-width:120px;
+}
+
+input, select, button {
+  background:#0f1320;
+  color:var(--fg);
+  border:1px solid #2a3248;
+  border-radius:6px;
+  padding:6px 8px;
+  font-size:13px;
+}
+
+button.primary {
+  background:#19233a;
+  border-color:#2a3b66;
+}
+
+details {
+  border:1px solid #20273a;
+  border-radius:8px;
+  padding:6px 8px;
+  margin:8px 0;
+}
+
+summary {
+  cursor:pointer;
+  color:#cdd7f6;
+}
+
+.obj-card {
+  border:1px solid #27304a;
+  border-radius:8px;
+  padding:8px;
+  margin:8px 0;
+  background:#0f1422;
+}
+
+.obj-card .hdr {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.kv {
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap:6px 8px;
+  margin:8px 0;
+  align-items:center;
+}
+
+.accel {
+  width:100%;
+  border-collapse:collapse;
+  margin-top:6px;
+}
+
+.accel th, .accel td {
+  border:1px solid #2a3248;
+  padding:6px;
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+}
+
+.accel th {
+  color:#aab4d4;
+  font-weight:600;
+  text-align:left;
+}
+
+.accel td.actions {
+  text-align:left;
+}
+
+.err {
+  color:#ff7b7b;
+  font-size:12px;
+  margin-top:4px;
+}
+
+pre.log {
+  background:#0f1320;
+  border:1px solid #2a3248;
+  border-radius:6px;
+  padding:8px;
+  color:#cfe1ff;
+  max-height:160px;
+  overflow:auto;
+}
