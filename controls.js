@@ -61,7 +61,7 @@ export function renderClock(o, idx, appState, callbacks) {
     const { refreshReference, markDirty, renderObjects } = callbacks;
     const card = document.createElement('div');
     card.className = 'obj-card';
-    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Clock:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(o.color)}"><button class="del">🗑</button></summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${o.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${o.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${o.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${o.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${o.size}"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details>`;
+    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Clock:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(o.color)}"><button class="del">🗑</button></summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${o.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${o.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-1" max="1" value="${o.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${o.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${o.size}"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details>`;
     const nm = card.querySelector('.nm');
     nm.addEventListener('input', e => {
         o.name = e.target.value;
@@ -91,7 +91,11 @@ export function renderClock(o, idx, appState, callbacks) {
         markDirty();
     });
     function updateCardBorder() {
-        card.querySelector('details').style.borderColor = colorHex(o.color);
+        const detailsEl = card.querySelector('details');
+        detailsEl.style.borderColor = colorHex(o.color);
+        // Set background to chosen color with 30% opacity
+        const [r, g, b] = o.color;
+        detailsEl.style.backgroundColor = `rgba(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)}, 0.3)`;
     }
     updateCardBorder();
 
@@ -201,7 +205,7 @@ export function renderGrid(o, idx, appState, callbacks) {
     const card = document.createElement('div');
     card.className = 'obj-card';
     const t = o.template;
-    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Grid:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(t.color)}"><button class="del">🗑</button></summary><div class="kv"><label>count</label><input class="count" type="number" step="1" min="1" value="${o.count}"><label>spacing</label><input class="spacing" type="number" step="0.01" value="${o.spacing}"></div><details><summary>Template Clock</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${t.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${t.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${t.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${t.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${t.size}"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details></details>`;
+    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Grid:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(t.color)}"><button class="del">🗑</button></summary><div class="kv"><label>count</label><input class="count" type="number" step="1" min="1" value="${o.count}"><label>spacing</label><input class="spacing" type="number" step="0.01" value="${o.spacing}"></div><details><summary>Template Clock</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${t.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${t.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-1" max="1" value="${t.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${t.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${t.size}"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details></details>`;
     card.querySelector('.nm').addEventListener('input', e => {
         o.name = e.target.value;
         markDirty();
@@ -229,7 +233,11 @@ export function renderGrid(o, idx, appState, callbacks) {
     u('t0', 't0');
     u('size', 'size');
     function updateCardBorder() {
-        card.querySelector('details').style.borderColor = colorHex(t.color);
+        const detailsEl = card.querySelector('details');
+        detailsEl.style.borderColor = colorHex(t.color);
+        // Set background to chosen color with 30% opacity
+        const [r, g, b] = t.color;
+        detailsEl.style.backgroundColor = `rgba(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)}, 0.3)`;
     }
     updateCardBorder();
 

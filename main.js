@@ -14,25 +14,6 @@ const presets = {
         reference: 'Alice',
         animate: true,
         objects: [
-            // Grid with 11 clocks
-            {
-                type: 'grid',
-                name: 'Grid',
-                count: 11,
-                spacing: 2.0,
-                template: {
-                    type: 'clock',
-                    name: 'Grid Template',
-                    x0: -10.0,
-                    y0: -2.0,
-                    v0: 0,
-                    m0: 1.0,
-                    t0: 0,
-                    size: 1.0,
-                    color: [77/255, 77/255, 77/255], // (77,77,77,255) -> normalized RGB
-                    prog: []
-                }
-            },
             // Alice - traveling twin with complex acceleration
             {
                 type: 'clock',
@@ -65,6 +46,25 @@ const presets = {
                 size: 1.5,
                 color: [69/255, 69/255, 126/255], // (69,69,126,255) -> normalized RGB
                 prog: []
+            },
+            // Grid with 11 clocks
+            {
+                type: 'grid',
+                name: 'Grid',
+                count: 11,
+                spacing: 2.0,
+                template: {
+                    type: 'clock',
+                    name: 'Grid Template',
+                    x0: -10.0,
+                    y0: -2.0,
+                    v0: 0,
+                    m0: 1.0,
+                    t0: 0,
+                    size: 1.0,
+                    color: [77/255, 77/255, 77/255], // (77,77,77,255) -> normalized RGB
+                    prog: []
+                }
             }
         ]
     }
