@@ -1,7 +1,7 @@
 // ABOUTME: Test suite for validating simulation physics and invariance properties
 // ABOUTME: Includes smoke tests, proper time validation, and reference frame transformations
 
-export function runTests(appState, runPipeline, plotInertial, plotRef, buildPlotData, getSpaceline) {
+export function runTests(appState, runPipeline, plotInertial, plotRef, getSpaceline) {
     const tlog = document.getElementById('test-log');
     const tprint = (m) => {
         tlog.textContent += m + "\n";
@@ -11,8 +11,8 @@ export function runTests(appState, runPipeline, plotInertial, plotRef, buildPlot
     try {
         tlog.textContent = '';
         const res = runPipeline();
-        plotInertial.setData(buildPlotData(res.sim1, 'inert'));
-        plotRef.setData(buildPlotData(res.sim2, 'ref'));
+        res.sim1.plot(plotInertial, false);  // inertial frame
+        res.sim2.plot(plotRef, true);        // reference frame
         const sl1 = getSpaceline(res.sim1, 'inert', 0);
         const sl2 = getSpaceline(res.sim2, 'ref', 0);
         if (sl1 && typeof sl1.v === 'number') tprint('Spaceline inertial ✓');

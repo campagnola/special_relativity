@@ -51,10 +51,13 @@ export function makeAnimCanvas(canvas) {
             ymax = Math.max(ymax, c.y0);
         }
 
-        // Map y0 data coordinates to screen pixels, centered in canvas
-        const pad = 40;
+        // Map y0 data coordinates to screen pixels, scaled for shorter animation view
+        const pad = 10; // Reduced padding for shorter view
         const centerY = H / 2; // Center of canvas
-        const pixelsPerUnit = 50; // Scale factor for y0 coordinates
+
+        // Scale factor - compress vertically to fit in shorter animation view
+        // With 20% height vs 80%, we need stronger compression
+        const pixelsPerUnit = Math.min(15, H / 8); // Adaptive scaling based on view height
 
         for (let ci = 0; ci < clocks.length; ci++) {
             const c = clocks[ci];
@@ -65,6 +68,7 @@ export function makeAnimCanvas(canvas) {
             const f = b.f[idx];
             // Use actual y0 value like Python: setPos(x, y0)
             // Map y0=0 to center, positive y0 upward, negative y0 downward
+            // Scale positions to fit in shorter view
             const y = centerY - (c.y0 * pixelsPerUnit);
             // world x -> screen x mapping
             // Use precise pixel mapping from linked plot if available
@@ -101,44 +105,64 @@ export function makeAnimCanvas(canvas) {
                 px = pad + (x - xmin) * scaleX;
             }
 
-            // base radius from size (pixels), clamp sensible range
-            const baseR = Math.max(6, Math.min(24, c.size));
+            // Python uses clock.size directly as diameter: QGraphicsEllipseItem(QRectF(0, 0, self.size, self.size))
+            // Convert from data units to pixels with reasonable scaling
+            const baseR = c.size * 10; // clock.size is diameter in data units, scale to pixels
             const sx = invGamma(v); // length contraction factor (1/gamma)
 
-            // draw arrow indicating force (use accel magnitude directly like Python flare length)
+            // draw arrow indicating force (flare)
+            // Python: setPen(pg.mkPen('y')) + setBrush(pg.mkBrush(255,150,0))
             const arrowLen = Math.min(40, Math.abs(f) * 18); // scale factor chosen to resemble Python visual
             const arrowDir = Math.sign(f) || 0; // + pushes to +x
             if (arrowDir !== 0) {
-                ctx.strokeStyle = c.colorCss();
-                ctx.lineWidth = 2;
+                ctx.save();
+                ctx.translate(px, y);
+
+                // Draw flare as triangle (Python's QPolygonF)
                 ctx.beginPath();
-                const ax0 = px - arrowDir * (baseR + 6);
-                const ax1 = ax0 + arrowDir * arrowLen;
-                ctx.moveTo(ax0, y);
-                ctx.lineTo(ax1, y);
-                // arrow head
-                ctx.lineTo(ax1 - arrowDir * 6, y - 4);
-                ctx.moveTo(ax1, y);
-                ctx.lineTo(ax1 - arrowDir * 6, y + 4);
+                ctx.moveTo(-arrowDir * baseR * 0.25, -baseR * 0.25);  // top vertex
+                ctx.lineTo(-arrowDir * baseR * 0.25, baseR * 0.25);   // bottom vertex
+                ctx.lineTo(arrowDir * arrowLen, 0);                   // tip vertex
+                ctx.closePath();
+
+                // Fill with orange (Python: pg.mkBrush(255,150,0))
+                ctx.fillStyle = 'rgb(255,150,0)';
+                ctx.fill();
+
+                // Outline with yellow (Python: pg.mkPen('y'))
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 1;
                 ctx.stroke();
+
+                ctx.restore();
             }
 
             // draw contracted body as an ellipse (scale X by sx)
+            // Python: setPen(pg.mkPen(100,100,100)) + setBrush(clock.brush)
             ctx.save();
             ctx.translate(px, y);
             ctx.scale(sx, 1);
             ctx.beginPath();
             ctx.arc(0, 0, baseR, 0, Math.PI * 2);
-            ctx.strokeStyle = c.colorCss();
-            ctx.lineWidth = 2;
+
+            // Fill with clock color (Python: clock.brush)
+            ctx.fillStyle = c.colorCss();
+            ctx.fill();
+
+            // Outline with gray (Python: pg.mkPen(100,100,100))
+            ctx.strokeStyle = 'rgb(100,100,100)';
+            ctx.lineWidth = 1;
             ctx.stroke();
 
             // clock hand: rotates at -0.25*pt*360°  => angle = -0.5π * pt
+            // Python: setPen(pg.mkPen('w')) (white)
             const theta = -0.5 * Math.PI * pt;
             const handR = baseR * 0.9;
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.lineTo(handR * Math.cos(theta), handR * Math.sin(theta));
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
             ctx.stroke();
             ctx.restore();
         }

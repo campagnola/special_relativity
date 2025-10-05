@@ -183,6 +183,55 @@ export class Clock {
         R.m[i] = this.refm;
         R.f[i] = this.m0 * this.accelAt(this.pt);
     }
+
+    getCurve(ref = true) {
+        // Python's getCurve method - returns {curve, points}
+        const data = ref ? this.ref : this.inert;
+        const x = data.x;
+        const y = data.t;
+        const pt = data.pt;
+
+        // Skip first element for ref mode like Python: data = self.refData[1:]
+        const startIdx = ref ? 1 : 0;
+
+        // Curve data (worldline)
+        const curve = {
+            x: x.slice(startIdx),
+            y: y.slice(startIdx),
+            color: this.colorCss()
+        };
+
+        // Points data (proper time markers) - exactly like Python getCurve
+        const step = 1.0;
+        const inds = [startIdx];
+        for (let i = startIdx + 1; i < pt.length; i++) {
+            const diff = pt[i] - pt[inds[inds.length - 1]];
+            if (Math.abs(diff) >= step) {
+                inds.push(i);
+            }
+        }
+
+        const pts = [];
+        for (const i of inds) {
+            const xVal = x[i];
+            const yVal = y[i];
+
+            // Calculate dpt like Python: dpt = data['pt'][i+1]-data['pt'][i]
+            let dpt;
+            if (i + 1 < pt.length) {
+                dpt = pt[i + 1] - pt[i];
+            } else {
+                dpt = 1; // Python default
+            }
+
+            // Python coloring: dpt > 0 -> black (0,0,0), dpt <= 0 -> gray (200,200,200)
+            const color = dpt > 0 ? '#000000' : '#c8c8c8';
+            pts.push({ x: xVal, y: yVal, color });
+        }
+
+        const points = { pts };
+        return { curve, points };
+    }
 }
 
 export class Simulation {
@@ -327,6 +376,52 @@ export class Simulation {
         }
         return n;
     }
+
+    plot(plotApi, ref = true) {
+        // Python's Simulation.plot method - exactly like Python
+        const lines = [];
+        const dots = [];
+
+        for (const cl of this.clocks) {
+            const { curve, points } = cl.getCurve(ref);
+
+            // Add curve
+            lines.push(curve);
+
+            // Add points - group by color like our current plotting system expects
+            const blackPts = [], grayPts = [];
+            for (const pt of points.pts) {
+                if (pt.color === '#000000') {
+                    blackPts.push(pt);
+                } else {
+                    grayPts.push(pt);
+                }
+            }
+
+            if (blackPts.length) {
+                dots.push({
+                    x: new Float64Array(blackPts.map(p => p.x)),
+                    y: new Float64Array(blackPts.map(p => p.y)),
+                    color: '#000000',        // brush (fill)
+                    penColor: cl.colorCss()  // pen (outline) - clock color
+                });
+            }
+
+            if (grayPts.length) {
+                dots.push({
+                    x: new Float64Array(grayPts.map(p => p.x)),
+                    y: new Float64Array(grayPts.map(p => p.y)),
+                    color: '#c8c8c8',        // brush (fill)
+                    penColor: cl.colorCss()  // pen (outline) - clock color
+                });
+            }
+        }
+
+        const plotData = { lines, dots };
+        plotApi.setData(plotData);
+        return plotData;
+    }
+
     // Orchestrator matching Python's Simulation.run(): returns two sims (inertial, reference)
     static runAll(objects, refName, duration, dt) {
         const sim1 = new Simulation({

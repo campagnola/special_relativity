@@ -2,7 +2,7 @@
 // ABOUTME: Integrates all modules and manages the application state and event handlers
 
 import { Simulation, expandToClocks } from './simulation.js';
-import { makeWorldlinePlot, buildPlotData, getSpaceline } from './plotting.js';
+import { makeWorldlinePlot, getSpaceline } from './plotting.js';
 import { makeAnimCanvas } from './animation.js';
 import { clockDefaults, gridDefaults, validate, renderClock, renderGrid } from './controls.js';
 import { runTests } from './testing.js';
@@ -100,10 +100,11 @@ function recalculate() {
     try {
         const res = runPipeline();
         markClean();
-        const inertPD = buildPlotData(res.sim1, 'inert');
-        const refPD = buildPlotData(res.sim2, 'ref');
-        plotInertial.setData(inertPD);
-        plotRef.setData(refPD);
+
+        // Use Python's plotting structure: sim.plot(plotWidget)
+        res.sim1.plot(plotInertial, false);  // inertial frame (ref=false)
+        res.sim2.plot(plotRef, true);        // reference frame (ref=true)
+
         appState._plots = { inert: { sim: res.sim1 }, ref: { sim: res.sim2 } };
         plotInertial.setSpaceline(getSpaceline(res.sim1, 'inert', 0));
         plotRef.setSpaceline(getSpaceline(res.sim2, 'ref', 0));
@@ -295,5 +296,5 @@ rafStart();
 
 // Test runner
 document.getElementById('run-ui-tests').addEventListener('click', () => {
-    runTests(appState, runPipeline, plotInertial, plotRef, buildPlotData, getSpaceline);
+    runTests(appState, runPipeline, plotInertial, plotRef, getSpaceline);
 });
