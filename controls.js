@@ -61,7 +61,7 @@ export function renderClock(o, idx, appState, callbacks) {
     const { refreshReference, markDirty, renderObjects } = callbacks;
     const card = document.createElement('div');
     card.className = 'obj-card';
-    card.innerHTML = `<div class="hdr"><div>Clock — <input class="nm" type="text" value="${o.name}"></div><div><button class="dup">Duplicate</button><button class="del">Delete</button></div></div><details open><summary>Parameters</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${o.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${o.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${o.v0}"><label>m₀</label><input class="m0" type="number" step="0.001" min="1e-9" value="${o.m0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${o.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${o.size}"><label>color</label><input class="color" type="color" value="${colorHex(o.color)}"></div><div class="accel-wrap"><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details>`;
+    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Clock:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(o.color)}"><button class="del">🗑</button></summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${o.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${o.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${o.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${o.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${o.size}"></div><div class="accel-wrap"><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details>`;
     const nm = card.querySelector('.nm');
     nm.addEventListener('input', e => {
         o.name = e.target.value;
@@ -82,10 +82,6 @@ export function renderClock(o, idx, appState, callbacks) {
         markDirty();
         callbacks.validate();
     });
-    card.querySelector('.m0').addEventListener('input', e => {
-        o.m0 = +e.target.value;
-        markDirty();
-    });
     card.querySelector('.t0').addEventListener('input', e => {
         o.t0 = +e.target.value;
         markDirty();
@@ -94,8 +90,14 @@ export function renderClock(o, idx, appState, callbacks) {
         o.size = +e.target.value;
         markDirty();
     });
+    function updateCardBorder() {
+        card.style.borderColor = colorHex(o.color);
+    }
+    updateCardBorder();
+
     card.querySelector('.color').addEventListener('input', e => {
         o.color = colorArr(e.target.value);
+        updateCardBorder();
         markDirty();
     });
     const body = card.querySelector('.accel-body');
@@ -105,15 +107,44 @@ export function renderClock(o, idx, appState, callbacks) {
         o.prog.slice().forEach((row, rIdx) => {
             const [tau, a] = row;
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><input class="tau" type="number" step="0.01" min="0" value="${tau}"></td><td><input class="acc" type="number" step="0.001" value="${a}"></td><td class="actions"><button class="up">▲</button><button class="down">▼</button><button class="ins">＋</button><button class="rm">🗑</button></td>`;
-            tr.querySelector('.tau').addEventListener('input', e => {
-                o.prog[rIdx][0] = +e.target.value;
+            tr.innerHTML = `<td class="tau" contenteditable="true">${tau}</td><td class="acc" contenteditable="true">${a}</td><td class="actions"><button class="up">▲</button><button class="down">▼</button><button class="ins">＋</button><button class="rm">🗑</button></td>`;
+            const tauCell = tr.querySelector('.tau');
+            const accCell = tr.querySelector('.acc');
+
+            tauCell.addEventListener('blur', e => {
+                const val = +e.target.textContent || 0;
+                o.prog[rIdx][0] = val;
+                e.target.textContent = val; // normalize display
                 markDirty();
                 callbacks.validate();
             });
-            tr.querySelector('.acc').addEventListener('input', e => {
-                o.prog[rIdx][1] = +e.target.value;
+            tauCell.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    accCell.focus();
+                } else if (e.key === 'Tab' && !e.shiftKey) {
+                    e.preventDefault();
+                    accCell.focus();
+                }
+            });
+
+            accCell.addEventListener('blur', e => {
+                const val = +e.target.textContent || 0;
+                o.prog[rIdx][1] = val;
+                e.target.textContent = val; // normalize display
                 markDirty();
+            });
+            accCell.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const nextRow = tr.nextElementSibling;
+                    if (nextRow) {
+                        nextRow.querySelector('.tau').focus();
+                    }
+                } else if (e.key === 'Tab' && e.shiftKey) {
+                    e.preventDefault();
+                    tauCell.focus();
+                }
             });
             tr.querySelector('.up').addEventListener('click', () => {
                 if (rIdx > 0) {
@@ -156,21 +187,6 @@ export function renderClock(o, idx, appState, callbacks) {
         redrawProg();
         markDirty();
     });
-    card.querySelector('.dup').addEventListener('click', () => {
-        const base = o.name.replace(/ \(\d+\)$/, '');
-        let i = 2;
-        let nm = base + ' (2)';
-        const names = new Set(appState.objects.map(o => o.name));
-        while (names.has(nm)) {
-            i++;
-            nm = `${base} (${i})`;
-        }
-        const copy = JSON.parse(JSON.stringify(o));
-        copy.name = nm;
-        appState.objects.splice(idx + 1, 0, copy);
-        renderObjects();
-        markDirty();
-    });
     card.querySelector('.del').addEventListener('click', () => {
         appState.objects.splice(idx, 1);
         renderObjects();
@@ -185,7 +201,7 @@ export function renderGrid(o, idx, appState, callbacks) {
     const card = document.createElement('div');
     card.className = 'obj-card';
     const t = o.template;
-    card.innerHTML = `<div class="hdr"><div>Grid — <input class="nm" type="text" value="${o.name}"></div><div><button class="del">Delete</button></div></div><div class="kv"><label>count</label><input class="count" type="number" step="1" min="1" value="${o.count}"><label>spacing</label><input class="spacing" type="number" step="0.01" value="${o.spacing}"></div><details><summary>Template Clock</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${t.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${t.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${t.v0}"><label>m₀</label><input class="m0" type="number" step="0.001" min="1e-9" value="${t.m0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${t.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${t.size}"><label>color</label><input class="color" type="color" value="${colorHex(t.color)}"></div><div class="accel-wrap"><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details>`;
+    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Grid:</span><input class="nm" type="text" value="${o.name}"><input class="color" type="color" value="${colorHex(t.color)}"><button class="del">🗑</button></summary><div class="kv"><label>count</label><input class="count" type="number" step="1" min="1" value="${o.count}"><label>spacing</label><input class="spacing" type="number" step="0.01" value="${o.spacing}"></div><details><summary>Template Clock</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${t.x0}"><label>y₀</label><input class="y0" type="number" step="0.01" value="${t.y0}"><label>v₀</label><input class="v0" type="number" step="0.001" min="-0.999999" max="0.999999" value="${t.v0}"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${t.t0}"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${t.size}"></div><div class="accel-wrap"><table class="accel"><thead><tr><th>τ (s)</th><th>a</th><th class="actions">Actions</th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row">Add Command</button></div></div></details></details>`;
     card.querySelector('.nm').addEventListener('input', e => {
         o.name = e.target.value;
         markDirty();
@@ -210,11 +226,16 @@ export function renderGrid(o, idx, appState, callbacks) {
     u('x0', 'x0');
     u('y0', 'y0');
     u('v0', 'v0');
-    u('m0', 'm0');
     u('t0', 't0');
     u('size', 'size');
+    function updateCardBorder() {
+        card.style.borderColor = colorHex(t.color);
+    }
+    updateCardBorder();
+
     card.querySelector('.color').addEventListener('input', e => {
         t.color = colorArr(e.target.value);
+        updateCardBorder();
         markDirty();
     });
     const body = card.querySelector('.accel-body');
@@ -224,15 +245,44 @@ export function renderGrid(o, idx, appState, callbacks) {
         t.prog.slice().forEach((row, rIdx) => {
             const [tau, a] = row;
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><input class="tau" type="number" step="0.01" min="0" value="${tau}"></td><td><input class="acc" type="number" step="0.001" value="${a}"></td><td class="actions"><button class="up">▲</button><button class="down">▼</button><button class="ins">＋</button><button class="rm">🗑</button></td>`;
-            tr.querySelector('.tau').addEventListener('input', e => {
-                t.prog[rIdx][0] = +e.target.value;
+            tr.innerHTML = `<td class="tau" contenteditable="true">${tau}</td><td class="acc" contenteditable="true">${a}</td><td class="actions"><button class="up">▲</button><button class="down">▼</button><button class="ins">＋</button><button class="rm">🗑</button></td>`;
+            const tauCell = tr.querySelector('.tau');
+            const accCell = tr.querySelector('.acc');
+
+            tauCell.addEventListener('blur', e => {
+                const val = +e.target.textContent || 0;
+                t.prog[rIdx][0] = val;
+                e.target.textContent = val; // normalize display
                 markDirty();
                 callbacks.validate();
             });
-            tr.querySelector('.acc').addEventListener('input', e => {
-                t.prog[rIdx][1] = +e.target.value;
+            tauCell.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    accCell.focus();
+                } else if (e.key === 'Tab' && !e.shiftKey) {
+                    e.preventDefault();
+                    accCell.focus();
+                }
+            });
+
+            accCell.addEventListener('blur', e => {
+                const val = +e.target.textContent || 0;
+                t.prog[rIdx][1] = val;
+                e.target.textContent = val; // normalize display
                 markDirty();
+            });
+            accCell.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const nextRow = tr.nextElementSibling;
+                    if (nextRow) {
+                        nextRow.querySelector('.tau').focus();
+                    }
+                } else if (e.key === 'Tab' && e.shiftKey) {
+                    e.preventDefault();
+                    tauCell.focus();
+                }
             });
             tr.querySelector('.up').addEventListener('click', () => {
                 if (rIdx > 0) {

@@ -38,8 +38,7 @@ export function makeAnimCanvas(canvas) {
         const dt = sim.dt;
         const n = sim.frames;
         if (!n) return;
-        const tSim = (t % Math.max(dt, dur));
-        const idx = Math.min(n - 1, Math.floor(tSim / dt));
+        const idx = Math.min(n - 1, Math.floor(t / dt));
         const buffers = mode === 'inert' ? 'inert' : 'ref';
         // Use actual y0 values for vertical positioning, exactly like Python setPos(x, y0)
         const clocks = sim.clocks;

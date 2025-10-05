@@ -265,11 +265,20 @@ loadPreset('Twin Paradox (grid)');
 
 // animation loop
 let rafId = 0;
-let t0 = performance.now();
+let lastAnimTime = performance.now() / 1000;
+let animTime = 0;
 
 function tick() {
-    const now = performance.now();
-    const secs = ((now - t0) / 1000); // real seconds since start
+    const now = performance.now() / 1000;
+    const dt = (now - lastAnimTime) * appState.animSpeed;
+    lastAnimTime = now;
+    animTime += dt;
+
+    // Reset animation time when exceeding duration (like Python)
+    if (animTime > appState.duration) {
+        animTime = 0;
+    }
+
     // update animated spacelines if results exist
     const plots = appState._plots;
     if (plots) {
@@ -280,24 +289,22 @@ function tick() {
             sim: sim2
         } = plots.ref || {};
         if (sim1) {
-            const tSim = secs * appState.animSpeed;
-            const i = Math.min(sim1.frames - 1, Math.floor((tSim % sim1.duration) / sim1.dt));
+            const i = Math.min(sim1.frames - 1, Math.floor(animTime / sim1.dt));
             plotInertial.setSpaceline(getSpaceline(sim1, 'inert', i));
         }
         if (sim2) {
-            const tSim = secs * appState.animSpeed;
-            const i = Math.min(sim2.frames - 1, Math.floor((tSim % sim2.duration) / sim2.dt));
+            const i = Math.min(sim2.frames - 1, Math.floor(animTime / sim2.dt));
             plotRef.setSpaceline(getSpaceline(sim2, 'ref', i));
         }
     }
-    animInertial.draw(secs * appState.animSpeed);
-    animRef.draw(secs * appState.animSpeed);
+    animInertial.draw(animTime);
+    animRef.draw(animTime);
     rafId = appState.animate ? requestAnimationFrame(tick) : 0;
 }
 
 function rafStart() {
     if (!rafId && appState.animate) {
-        t0 = performance.now();
+        lastAnimTime = performance.now() / 1000;
         rafId = requestAnimationFrame(tick);
     }
 }
