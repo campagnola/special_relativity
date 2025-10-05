@@ -329,28 +329,53 @@ export function buildPlotData(sim, mode = 'inert') {
             y: t,
             color: c.colorCss()
         });
-        const evenX = [],
-            evenY = [],
-            oddX = [],
-            oddY = [];
-        let last = Math.floor(pt[0] || 0);
+        // Python logic: markers every 1.0 proper time unit, colored by time direction
+        const step = 1.0;
+        const inds = [0];
         for (let i = 1; i < pt.length; i++) {
-            const cur = Math.floor(pt[i] || 0);
-            if (cur > last) {
-                (cur % 2 === 0 ? evenX : oddX).push(x[i]);
-                (cur % 2 === 0 ? evenY : oddY).push(t[i]);
-                last = cur;
+            const diff = pt[i] - pt[inds[inds.length - 1]];
+            if (Math.abs(diff) >= step) {
+                inds.push(i);
             }
         }
-        if (evenX.length) dots.push({
-            x: new Float64Array(evenX),
-            y: new Float64Array(evenY),
-            color: '#cfe1ff'
+
+        // Separate markers by time direction like Python getCurve()
+        const forwardX = [], forwardY = [], backwardX = [], backwardY = [];
+        for (let idx = 0; idx < inds.length; idx++) {
+            const i = inds[idx];
+            const xVal = x[i];
+            const yVal = t[i];
+
+            // Calculate dpt like Python: dpt = data['pt'][i+1]-data['pt'][i]
+            let dpt;
+            if (i + 1 < pt.length) {
+                dpt = pt[i + 1] - pt[i];
+            } else {
+                dpt = 1; // Python default for last point
+            }
+
+            // Python coloring: dpt > 0 -> black, dpt <= 0 -> gray
+            if (dpt > 0) {
+                forwardX.push(xVal);
+                forwardY.push(yVal);
+            } else {
+                backwardX.push(xVal);
+                backwardY.push(yVal);
+            }
+        }
+
+        // Black dots for forward time (Python: (0,0,0))
+        if (forwardX.length) dots.push({
+            x: new Float64Array(forwardX),
+            y: new Float64Array(forwardY),
+            color: '#000000'
         });
-        if (oddX.length) dots.push({
-            x: new Float64Array(oddX),
-            y: new Float64Array(oddY),
-            color: '#6b7690'
+
+        // Gray dots for backward time (Python: (200,200,200))
+        if (backwardX.length) dots.push({
+            x: new Float64Array(backwardX),
+            y: new Float64Array(backwardY),
+            color: '#c8c8c8'
         });
     }
     // do not attach spaceline here; animated separately

@@ -111,23 +111,30 @@ export class Clock {
         return `rgba(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)},1)`;
     }
     accelAt(tau) {
-        const p = this.prog || [
-            [0, 0]
-        ];
+        const p = this.prog || [];
+        // Handle empty program like Python: return 0.0
+        if (p.length === 0) {
+            return 0.0;
+        }
         // advance index monotonically as proper time increases
         while (this._progIdx + 1 < p.length && tau >= p[this._progIdx + 1][0] - 1e-12) this._progIdx++;
         // If the first command starts at τ>0, acceleration before that is 0 (faithful to Python behavior)
-        if (p.length && tau < p[0][0] - 1e-12) return 0;
+        if (tau < p[0][0] - 1e-12) return 0;
         return p[this._progIdx][1] || 0;
     }
     accelLimits() {
-        const p = this.prog || [
-            [0, 0]
-        ];
-        // Before the first command at τ>0, treat as an initial segment [0, τ0) with a=0
-        if (p.length && this.pt < p[0][0] - 1e-12) {
+        const p = this.prog || [];
+        // Handle empty program like Python: return (-inf, inf)
+        if (p.length === 0) {
             return {
-                tau1: 0,
+                tau1: -Infinity,
+                tau2: Infinity
+            };
+        }
+        // Before the first command at τ>0, treat as an initial segment [0, τ0) with a=0
+        if (this.pt < p[0][0] - 1e-12) {
+            return {
+                tau1: -Infinity,
                 tau2: p[0][0]
             };
         }

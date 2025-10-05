@@ -7,12 +7,120 @@ import { makeAnimCanvas } from './animation.js';
 import { clockDefaults, gridDefaults, validate, renderClock, renderGrid } from './controls.js';
 import { runTests } from './testing.js';
 
-// App state
+// Preset data - converted from Python .cfg format
+const presets = {
+    'Twin Paradox (grid)': {
+        duration: 27.0,
+        animSpeed: 1.0,
+        reference: 'Alice',
+        animate: true,
+        objects: [
+            // Grid with 11 clocks
+            {
+                type: 'grid',
+                name: 'Grid',
+                count: 11,
+                spacing: 2.0,
+                template: {
+                    type: 'clock',
+                    name: 'Grid Template',
+                    x0: -10.0,
+                    y0: -2.0,
+                    v0: 0,
+                    m0: 1.0,
+                    t0: 0,
+                    size: 1.0,
+                    color: [77/255, 77/255, 77/255], // (77,77,77,255) -> normalized RGB
+                    prog: []
+                }
+            },
+            // Alice - traveling twin with complex acceleration
+            {
+                type: 'clock',
+                name: 'Alice',
+                x0: 0.0,
+                y0: 3.0,
+                v0: 0,
+                m0: 1.0,
+                t0: 0,
+                size: 1.5,
+                color: [82/255, 123/255, 44/255], // (82,123,44,255) -> normalized RGB
+                prog: [
+                    [1.0, 0.5],   // accelerate
+                    [3.0, 0.0],   // coast
+                    [8.0, -0.5],  // decelerate
+                    [12.0, 0.0],  // coast
+                    [17.0, 0.5],  // accelerate
+                    [19.0, 0.0]   // coast
+                ]
+            },
+            // Bob - stays at home (no acceleration)
+            {
+                type: 'clock',
+                name: 'Bob',
+                x0: 0.0,
+                y0: 0.0,
+                v0: 0,
+                m0: 1.0,
+                t0: 0,
+                size: 1.5,
+                color: [69/255, 69/255, 126/255], // (69,69,126,255) -> normalized RGB
+                prog: []
+            }
+        ]
+    }
+};
+
+function loadPreset(presetName) {
+    if (presetName === '') return;
+    const state = presets[presetName];
+    if (!state) return;
+    loadState(state);
+}
+
+function loadState(state) {
+    // Clear objects and restore state like Python loadState()
+    appState.objects = []; // clearChildren()
+    appState.duration = state.duration;
+    appState.animSpeed = state.animSpeed;
+    appState.reference = state.reference;
+    appState.animate = state.animate;
+    appState.objects = JSON.parse(JSON.stringify(state.objects)); // restoreState()
+
+    // Update UI to reflect loaded values
+    document.getElementById('dur').value = appState.duration;
+    document.getElementById('speed').value = appState.animSpeed;
+    document.getElementById('animate').checked = appState.animate;
+    renderObjects();
+
+    recalculate(); // Python calls this directly
+}
+
+function recalculate() {
+    try {
+        const res = runPipeline();
+        markClean();
+        const inertPD = buildPlotData(res.sim1, 'inert');
+        const refPD = buildPlotData(res.sim2, 'ref');
+        plotInertial.setData(inertPD);
+        plotRef.setData(refPD);
+        appState._plots = { inert: { sim: res.sim1 }, ref: { sim: res.sim2 } };
+        plotInertial.setSpaceline(getSpaceline(res.sim1, 'inert', 0));
+        plotRef.setSpaceline(getSpaceline(res.sim2, 'ref', 0));
+        animInertial.setSim(res.sim1, 'inert');
+        animRef.setSim(res.sim2, 'ref');
+    } catch (e) {
+        console.error(e);
+        alert('Simulation pipeline failed: ' + (e?.message || e));
+    }
+}
+
+// App state - start with minimal state like Python
 const appState = {
-    duration: 20,
+    duration: 10.0, // Python default
     animSpeed: 1,
     reference: null,
-    objects: [clockDefaults('Clock 1')],
+    objects: [], // Start empty like Python
     dirty: true,
     animate: true
 };
@@ -111,6 +219,7 @@ document.getElementById('add').addEventListener('click', () => {
     renderObjects();
     markDirty();
 });
+
 document.getElementById('dur').addEventListener('input', e => {
     appState.duration = +e.target.value || 20;
     markDirty();
@@ -136,38 +245,13 @@ const animRef = makeAnimCanvas(document.getElementById('anim-ref'));
 plotInertial.linkXAxis(animInertial);
 plotRef.linkXAxis(animRef);
 
-document.getElementById('recalc').addEventListener('click', () => {
-    try {
-        const res = runPipeline();
-        markClean();
-        const inertPD = buildPlotData(res.sim1, 'inert');
-        const refPD = buildPlotData(res.sim2, 'ref');
-        plotInertial.setData(inertPD);
-        plotRef.setData(refPD);
-        // cache for animation
-        appState._plots = {
-            inert: {
-                sim: res.sim1
-            },
-            ref: {
-                sim: res.sim2
-            }
-        };
-        // set initial spacelines at frame 0
-        plotInertial.setSpaceline(getSpaceline(res.sim1, 'inert', 0));
-        plotRef.setSpaceline(getSpaceline(res.sim2, 'ref', 0));
-
-        // Set animation simulation data
-        animInertial.setSim(res.sim1, 'inert');
-        animRef.setSim(res.sim2, 'ref');
-    } catch (e) {
-        console.error(e);
-        alert('Simulation pipeline failed: ' + (e?.message || e));
-    }
-});
+document.getElementById('recalc').addEventListener('click', recalculate);
 
 // seed UI
 renderObjects();
+
+// Load preset on startup like Python: win.loadPreset(None, 'Twin Paradox (grid)')
+loadPreset('Twin Paradox (grid)');
 
 // animation loop
 let rafId = 0;
