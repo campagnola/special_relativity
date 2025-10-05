@@ -299,6 +299,33 @@ plotRef.linkXAxis(animRef);
 
 // Auto-recalculation replaces manual button
 
+// Help modal functionality
+const helpModal = document.getElementById('help-modal');
+const helpBtn = document.getElementById('help-btn');
+const helpClose = document.getElementById('help-close');
+
+helpBtn.addEventListener('click', () => {
+    helpModal.classList.remove('hidden');
+});
+
+helpClose.addEventListener('click', () => {
+    helpModal.classList.add('hidden');
+});
+
+// Close modal when clicking outside
+helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        helpModal.classList.add('hidden');
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) {
+        helpModal.classList.add('hidden');
+    }
+});
+
 // seed UI
 renderObjects();
 
