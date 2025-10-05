@@ -9,8 +9,8 @@
 <body>
   <div class="app">
     <aside>
-      <h1>Relativity (JS) — Step 4</h1>
-      <div class="note">Plotting implemented: worldlines + proper‑time tick dots + optional spaceline. Plots auto‑fit; no pan/zoom.</div>
+      <h1>Special Relativity</h1>
+      <div class="note">Simulator ported from <a href="https://github.com/campagnola/relativipy" target="_blank">github.com/campagnola/relativipy</a></div>
       <details open>
         <summary>Simulation</summary>
         <div class="row"><label for="dur">Duration</label><input id="dur" type="number" min="0.1" step="0.1" value="20.0"></div>
@@ -22,17 +22,11 @@
       <details open>
         <summary>Objects</summary>
         <div class="row">
-          <label>Add New..</label>
-          <select id="add-type"><option value="clock">Clock</option><option value="grid">Grid</option></select>
-          <button id="add">Add</button>
+          <button id="add-clock">Add Clock</button>
+          <button id="add-grid">Add Grid</button>
         </div>
         <div id="objects"></div>
         <div class="err" id="obj-errors" hidden></div>
-      </details>
-      <details>
-        <summary>Tests</summary>
-        <div class="row"><button id="run-ui-tests">Run Smoke Test</button></div>
-        <pre class="log" id="test-log"></pre>
       </details>
     </aside>
     <main>

@@ -5,7 +5,6 @@ import { Simulation, expandToClocks } from './simulation.js';
 import { makeWorldlinePlot, getSpaceline } from './plotting.js';
 import { makeAnimCanvas } from './animation.js';
 import { clockDefaults, gridDefaults, validate, renderClock, renderGrid } from './controls.js';
-import { runTests } from './testing.js';
 
 // Preset data - converted from Python .cfg format
 const presets = {
@@ -209,13 +208,23 @@ function markClean() {
 }
 
 // Add & basic controls
-document.getElementById('add').addEventListener('click', () => {
-    const type = document.getElementById('add-type').value;
-    const base = (type === 'clock') ? 'Clock ' : 'Grid ';
+document.getElementById('add-clock').addEventListener('click', () => {
+    const base = 'Clock ';
     let i = 1;
     const names = new Set(appState.objects.map(o => o.name));
     while (names.has(base + i)) i++;
-    const obj = (type === 'clock') ? clockDefaults(base + i) : gridDefaults(base + i);
+    const obj = clockDefaults(base + i);
+    appState.objects.push(obj);
+    renderObjects();
+    markDirty();
+});
+
+document.getElementById('add-grid').addEventListener('click', () => {
+    const base = 'Grid ';
+    let i = 1;
+    const names = new Set(appState.objects.map(o => o.name));
+    while (names.has(base + i)) i++;
+    const obj = gridDefaults(base + i);
     appState.objects.push(obj);
     renderObjects();
     markDirty();
@@ -294,7 +303,3 @@ function rafStart() {
 }
 rafStart();
 
-// Test runner
-document.getElementById('run-ui-tests').addEventListener('click', () => {
-    runTests(appState, runPipeline, plotInertial, plotRef, getSpaceline);
-});
