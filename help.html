@@ -1,0 +1,54 @@
+<!-- ABOUTME: Help modal content for the relativity simulator -->
+<!-- ABOUTME: Contains user documentation explaining physics concepts, controls, and usage -->
+
+<div id="help-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>How to Use the Relativity Simulator</h2>
+      <button id="help-close" class="close-btn">×</button>
+    </div>
+    <div class="modal-body">
+      <h3>Worldline Plots (Top Panels)</h3>
+      <p>Show spacetime diagrams where:</p>
+      <ul>
+        <li><strong>Horizontal axis:</strong> Position in space</li>
+        <li><strong>Vertical axis:</strong> Time</li>
+        <li><strong>Straight lines:</strong> Constant velocity motion</li>
+        <li><strong>Curved lines:</strong> Acceleration</li>
+        <li><strong>Dots:</strong> Proper time tick marks (black = forward, gray = backward)</li>
+        <li><strong>Dashed line:</strong> Line of simultaneity in reference frame</li>
+        <li><strong>Colored dots:</strong> Current positions of all clocks</li>
+      </ul>
+
+      <h3>1D Animation (Bottom Panels)</h3>
+      <p>Real-time visualization showing:</p>
+      <ul>
+        <li><strong>Clocks:</strong> Colored circles representing objects</li>
+        <li><strong>Length contraction:</strong> Moving clocks appear compressed</li>
+        <li><strong>Proper time:</strong> Numbers next to clocks show their experienced time</li>
+        <li><strong>Force arrows:</strong> Orange triangles indicate acceleration</li>
+      </ul>
+
+      <h3>Controls</h3>
+      <ul>
+        <li><strong>Duration:</strong> Total simulation time</li>
+        <li><strong>Animation Speed:</strong> Playback rate (0.01x to 100x)</li>
+        <li><strong>Reference Frame:</strong> Choose viewing perspective</li>
+        <li><strong>Time Slider:</strong> Scrub through animation manually</li>
+        <li><strong>Spacebar:</strong> Toggle animation on/off</li>
+      </ul>
+
+      <h3></h3>Creating Objects</h3>
+      <p><strong>Clocks:</strong> Individual objects with acceleration programs</p>
+      <p><strong>Grids:</strong> Arrays of synchronized clocks</p>
+
+      <h3>Acceleration Programming</h3>
+      <p>Define motion with time-acceleration pairs:</p>
+      <ul>
+        <li><strong>τ (proper time):</strong> When to change acceleration</li>
+        <li><strong>a (acceleration):</strong> New acceleration value</li>
+      </ul>
+      <p>Example: [(0, 0.5), (3, 0), (8, -0.5)] = accelerate → coast → decelerate</p>
+    </div>
+  </div>
+</div>
