@@ -68,16 +68,29 @@ main {
   height:100%;
 }
 
-.frame-label {
-  font-size:14px;
-  font-weight:600;
-  color:var(--fg);
-  margin:0;
+.frame-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   padding:4px 8px;
-  text-align:center;
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:6px 6px 0 0;
+  gap:8px;
+}
+
+.frame-header select {
+  flex:1;
+  min-width:0;
+  font-size:14px;
+  font-weight:600;
+}
+
+.frame-time {
+  font-size:14px;
+  font-weight:600;
+  color:var(--fg);
+  white-space:nowrap;
 }
 
 canvas {

@@ -5,13 +5,15 @@ import { Simulation, expandToClocks } from './simulation.js';
 import { makeWorldlinePlot, getSpaceline } from './plotting.js';
 import { makeAnimCanvas } from './animation.js';
 import { clockDefaults, gridDefaults, validate, renderClock, renderGrid } from './controls.js';
+import { loadHelpModal } from './templates.js';
 
 // Preset data - converted from Python .cfg format
 const defaultPresets = {
     'Twin Paradox (grid)': {
         duration: 27.0,
         animSpeed: 1.0,
-        reference: 'Alice',
+        leftReference: '',
+        rightReference: 'Alice',
         animate: true,
         objects: [
             // Alice - traveling twin with complex acceleration
@@ -128,9 +130,23 @@ function loadState(state) {
     appState.objects = []; // clearChildren()
     appState.duration = state.duration;
     appState.animSpeed = state.animSpeed;
-    appState.reference = state.reference;
     appState.animate = state.animate;
     appState.objects = JSON.parse(JSON.stringify(state.objects)); // restoreState()
+
+    // Handle dual references (new format) or legacy single reference
+    if (state.leftReference !== undefined && state.rightReference !== undefined) {
+        // New dual reference format
+        appState.leftReference = state.leftReference;
+        appState.rightReference = state.rightReference;
+    } else if (state.reference !== undefined) {
+        // Legacy single reference format - put inertial on left, reference on right
+        appState.leftReference = '';
+        appState.rightReference = state.reference || '';
+    } else {
+        // Default fallback
+        appState.leftReference = '';
+        appState.rightReference = '';
+    }
 
     // Update UI to reflect loaded values
     document.getElementById('dur').value = appState.duration;
@@ -146,17 +162,29 @@ function loadState(state) {
 function recalculate() {
     try {
         const res = runPipeline();
-        markClean();
 
-        // Use Python's plotting structure: sim.plot(plotWidget)
-        res.sim1.plot(plotInertial, false);  // inertial frame (ref=false)
-        res.sim2.plot(plotRef, true);        // reference frame (ref=true)
+        // Extract sims for each column - use sim2 if a reference is selected, sim1 for inertial
+        const leftUseRef = !!appState.leftReference;
+        const rightUseRef = !!appState.rightReference;
 
-        appState._plots = { inert: { sim: res.sim1 }, ref: { sim: res.sim2 } };
-        plotInertial.setSpaceline(getSpaceline(res.sim1, 'inert', 0));
-        plotRef.setSpaceline(getSpaceline(res.sim2, 'ref', 0));
-        animInertial.setSim(res.sim1, 'inert');
-        animRef.setSim(res.sim2, 'ref');
+        const leftSim = leftUseRef ? res.left.sim2 : res.left.sim1;
+        const rightSim = rightUseRef ? res.right.sim2 : res.right.sim1;
+
+        // Plot to each column
+        leftSim.plot(plotLeft, leftUseRef);
+        rightSim.plot(plotRight, rightUseRef);
+
+        // Store plot data for updateVisuals
+        appState._plots = {
+            left: { sim: leftSim, isRef: leftUseRef },
+            right: { sim: rightSim, isRef: rightUseRef }
+        };
+
+        // Set spacelines and animation
+        plotLeft.setSpaceline(getSpaceline(leftSim, leftUseRef ? 'ref' : 'inert', 0));
+        plotRight.setSpaceline(getSpaceline(rightSim, rightUseRef ? 'ref' : 'inert', 0));
+        animLeft.setSim(leftSim, leftUseRef ? 'ref' : 'inert');
+        animRight.setSim(rightSim, rightUseRef ? 'ref' : 'inert');
     } catch (e) {
         console.error(e);
         alert('Simulation pipeline failed: ' + (e?.message || e));
@@ -167,9 +195,9 @@ function recalculate() {
 const appState = {
     duration: 10.0, // Python default
     animSpeed: 1,
-    reference: null,
+    leftReference: '', // Empty string means inertial frame
+    rightReference: '', // Empty string means inertial frame
     objects: [], // Start empty like Python
-    dirty: true,
     animate: true
 };
 
@@ -188,13 +216,17 @@ function runPipeline() {
     }));
     const dtBase = 0.016;
     const dt = dtBase * Math.max(0.0001, appState.animSpeed);
-    const {
-        sim1,
-        sim2
-    } = Simulation.runAll(objects, appState.reference, appState.duration, dt);
+
+    // Run simulations for both left and right columns
+    const leftRef = appState.leftReference || null;
+    const rightRef = appState.rightReference || null;
+
+    const leftSims = Simulation.runAll(objects, leftRef, appState.duration, dt);
+    const rightSims = Simulation.runAll(objects, rightRef, appState.duration, dt);
+
     appState.results = {
-        sim1,
-        sim2
+        left: leftSims,
+        right: rightSims
     };
     return appState.results;
 }
@@ -202,24 +234,35 @@ function runPipeline() {
 // Wire UI (minimal from Step 2)
 const $ = id => document.getElementById(id);
 const objectsRoot = $('objects');
-const refSelect = $('reference');
+const leftRefSelect = $('left-reference');
+const rightRefSelect = $('right-reference');
 const errBox = $('obj-errors');
 
-function refreshReference() {
+function populateReferenceSelect(selectElement, currentValue) {
     const clocks = appState.objects.filter(o => o.type === 'clock');
-    refSelect.innerHTML = '';
+
+    // Clear and add inertial option
+    selectElement.innerHTML = '<option value="">Inertial (lab)</option>';
+
+    // Add clock options
     clocks.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.name;
         opt.textContent = c.name;
-        refSelect.appendChild(opt);
+        selectElement.appendChild(opt);
     });
-    if (!clocks.length) {
-        appState.reference = null;
-        return;
+
+    // Set current value if valid
+    if (currentValue && clocks.some(c => c.name === currentValue)) {
+        selectElement.value = currentValue;
+    } else {
+        selectElement.value = '';
     }
-    if (!clocks.some(c => c.name === appState.reference)) appState.reference = clocks[0].name;
-    refSelect.value = appState.reference;
+}
+
+function refreshReference() {
+    populateReferenceSelect(leftRefSelect, appState.leftReference);
+    populateReferenceSelect(rightRefSelect, appState.rightReference);
 }
 
 function validateObjects() {
@@ -235,7 +278,7 @@ function validateObjects() {
 
 function renderObjects() {
     objectsRoot.innerHTML = '';
-    const callbacks = { refreshReference, markDirty, renderObjects, validate: validateObjects };
+    const callbacks = { refreshReference, markDirty: recalculate, renderObjects, validate: validateObjects };
     appState.objects.forEach((o, i) => {
         objectsRoot.appendChild(o.type === 'clock' ? renderClock(o, i, appState, callbacks) : renderGrid(o, i, appState, callbacks));
     });
@@ -243,15 +286,7 @@ function renderObjects() {
     validateObjects();
 }
 
-function markDirty() {
-    appState.dirty = true;
-    // Auto-recalculate immediately
-    recalculate();
-}
-
-function markClean() {
-    appState.dirty = false;
-}
+// markDirty/markClean removed - now using direct recalculate() calls
 
 // Add & basic controls
 document.getElementById('add-clock').addEventListener('click', () => {
@@ -262,7 +297,7 @@ document.getElementById('add-clock').addEventListener('click', () => {
     const obj = clockDefaults(base + i);
     appState.objects.push(obj);
     renderObjects();
-    markDirty();
+    recalculate();
 });
 
 document.getElementById('add-grid').addEventListener('click', () => {
@@ -273,14 +308,14 @@ document.getElementById('add-grid').addEventListener('click', () => {
     const obj = gridDefaults(base + i);
     appState.objects.push(obj);
     renderObjects();
-    markDirty();
+    recalculate();
 });
 
 document.getElementById('dur').addEventListener('input', e => {
     appState.duration = +e.target.value || 20;
     // Update slider max value
     document.getElementById('time-slider').max = appState.duration;
-    markDirty();
+    recalculate();
 });
 // Helper functions for logarithmic speed slider
 function sliderToSpeed(sliderValue) {
@@ -309,9 +344,15 @@ document.getElementById('speed').addEventListener('input', e => {
     appState.animSpeed = speed;
     updateSpeedLabel(speed);
 });
-document.getElementById('reference').addEventListener('change', e => {
-    appState.reference = e.target.value;
-    markDirty();
+leftRefSelect.addEventListener('change', e => {
+    appState.leftReference = e.target.value;
+    recalculate();
+    updateFrameLabels(); // Update labels immediately when reference changes
+});
+
+rightRefSelect.addEventListener('change', e => {
+    appState.rightReference = e.target.value;
+    recalculate();
     updateFrameLabels(); // Update labels immediately when reference changes
 });
 document.getElementById('animate').addEventListener('change', e => {
@@ -359,36 +400,40 @@ timeSlider.addEventListener('touchend', () => {
     sliderDragging = false;
 });
 
-const plotInertial = makeWorldlinePlot(document.getElementById('plot-inertial'));
-const plotRef = makeWorldlinePlot(document.getElementById('plot-ref'));
-const animInertial = makeAnimCanvas(document.getElementById('anim-inertial'));
-const animRef = makeAnimCanvas(document.getElementById('anim-ref'));
+const plotLeft = makeWorldlinePlot(document.getElementById('plot-left'));
+const plotRight = makeWorldlinePlot(document.getElementById('plot-right'));
+const animLeft = makeAnimCanvas(document.getElementById('anim-left'));
+const animRight = makeAnimCanvas(document.getElementById('anim-right'));
 
 // Set up axis linking like Python's setXLink calls
-plotInertial.linkXAxis(animInertial);
-plotRef.linkXAxis(animRef);
+plotLeft.linkXAxis(animLeft);
+plotRight.linkXAxis(animRight);
 
 // Auto-recalculation replaces manual button
 
-// Help modal functionality
-const helpModal = document.getElementById('help-modal');
-const helpBtn = document.getElementById('help-btn');
-const helpClose = document.getElementById('help-close');
+// Help modal setup - load and initialize
+async function setupHelpModal() {
+    await loadHelpModal();
 
-helpBtn.addEventListener('click', () => {
-    helpModal.classList.remove('hidden');
-});
+    const helpModal = document.getElementById('help-modal');
+    const helpBtn = document.getElementById('help-btn');
+    const helpClose = document.getElementById('help-close');
 
-helpClose.addEventListener('click', () => {
-    helpModal.classList.add('hidden');
-});
+    helpBtn.addEventListener('click', () => {
+        helpModal.classList.remove('hidden');
+    });
 
-// Close modal when clicking outside
-helpModal.addEventListener('click', (e) => {
-    if (e.target === helpModal) {
+    helpClose.addEventListener('click', () => {
         helpModal.classList.add('hidden');
-    }
-});
+    });
+
+    // Close modal when clicking outside
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+            helpModal.classList.add('hidden');
+        }
+    });
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -431,7 +476,8 @@ document.getElementById('save-preset').addEventListener('click', () => {
     const currentState = {
         duration: appState.duration,
         animSpeed: appState.animSpeed,
-        reference: appState.reference,
+        leftReference: appState.leftReference,
+        rightReference: appState.rightReference,
         animate: appState.animate,
         objects: JSON.parse(JSON.stringify(appState.objects))
     };
@@ -558,58 +604,42 @@ let rafId = 0;
 let lastAnimTime = performance.now() / 1000;
 let animTime = 0;
 
-function updateVisuals() {
-    // update animated spacelines and current markers if results exist
+function updateColumnVisuals(columnKey, plot, anim) {
     const plots = appState._plots;
-    if (plots) {
-        const {
-            sim: sim1
-        } = plots.inert || {};
-        const {
-            sim: sim2
-        } = plots.ref || {};
-        if (sim1) {
-            const i = Math.min(sim1.frames - 1, Math.floor(animTime / sim1.dt));
-            plotInertial.setSpaceline(getSpaceline(sim1, 'inert', i));
+    if (!plots || !plots[columnKey]) return;
 
-            // Calculate current position markers for all clocks
-            const markers1 = sim1.clocks.map(clock => {
-                const buffer = clock.inert;
-                const x = buffer.x[i];
-                const t = buffer.t[i];
-                return { x, t, color: clock.colorCss(), size: clock.size };
-            });
-            plotInertial.setCurrentMarkers(markers1);
-        }
-        if (sim2) {
-            const i = Math.min(sim2.frames - 1, Math.floor(animTime / sim2.dt));
-            plotRef.setSpaceline(getSpaceline(sim2, 'ref', i));
+    const { sim, isRef } = plots[columnKey];
+    const i = Math.min(sim.frames - 1, Math.floor(animTime / sim.dt));
+    const frameType = isRef ? 'ref' : 'inert';
 
-            // Calculate current position markers for all clocks
-            const markers2 = sim2.clocks.map(clock => {
-                const buffer = clock.ref;
-                const x = buffer.x[i];
-                const t = buffer.t[i];
-                return { x, t, color: clock.colorCss(), size: clock.size };
-            });
-            plotRef.setCurrentMarkers(markers2);
-        }
-    }
-    animInertial.draw(animTime);
-    animRef.draw(animTime);
+    plot.setSpaceline(getSpaceline(sim, frameType, i));
+
+    // Calculate current position markers for all clocks
+    const markers = sim.clocks.map(clock => {
+        const buffer = isRef ? clock.ref : clock.inert;
+        const x = buffer.x[i];
+        const t = buffer.t[i];
+        return { x, t, color: clock.colorCss(), size: clock.size };
+    });
+    plot.setCurrentMarkers(markers);
+    anim.draw(animTime);
+}
+
+function updateVisuals() {
+    // Update both columns using the same logic
+    updateColumnVisuals('left', plotLeft, animLeft);
+    updateColumnVisuals('right', plotRight, animRight);
 
     // Update frame labels with current time
     updateFrameLabels();
 }
 
 function updateFrameLabels() {
-    const inertialLabel = document.getElementById('inertial-label');
-    const refLabel = document.getElementById('ref-label');
+    const leftTime = document.getElementById('left-time');
+    const rightTime = document.getElementById('right-time');
 
-    inertialLabel.textContent = `Inertial (lab) Frame [ t=${animTime.toFixed(1)} ]`;
-
-    const refName = appState.reference || 'Reference';
-    refLabel.textContent = `${refName}'s Frame [ t=${animTime.toFixed(1)} ]`;
+    leftTime.textContent = `[ t=${animTime.toFixed(1)} ]`;
+    rightTime.textContent = `[ t=${animTime.toFixed(1)} ]`;
 }
 
 function tick() {
@@ -644,5 +674,8 @@ function rafStart() {
         rafId = requestAnimationFrame(tick);
     }
 }
+
+// Initialize help modal and start animation
+setupHelpModal();
 rafStart();
 

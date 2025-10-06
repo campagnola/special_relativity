@@ -1,6 +1,8 @@
 // ABOUTME: User interface controls for object creation, parameter editing, and state management
 // ABOUTME: Handles clock/grid creation, acceleration programming, validation, and UI updates
 
+import { clockCardTemplate, gridCardTemplate, accelerationRowTemplate } from './templates.js';
+
 export function clockDefaults(name) {
     return {
         type: 'clock',
@@ -61,7 +63,7 @@ export function renderClock(o, idx, appState, callbacks) {
     const { refreshReference, markDirty, renderObjects } = callbacks;
     const card = document.createElement('div');
     card.className = 'obj-card';
-    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Clock:</span><input class="nm" type="text" value="${o.name}" title="Object name (must be unique)"><input class="color" type="color" value="${colorHex(o.color)}" title="Display color for this clock"><button class="del" title="Delete this clock">🗑</button></summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${o.x0}" title="Initial position in space"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${o.t0}" title="Initial proper time offset"><label>Vertical position</label><input class="y0" type="number" step="0.01" value="${o.y0}" title="Vertical position in animation view (no physical meaning)"><label>v₀</label><input class="v0" type="number" step="0.001" min="-1" max="1" value="${o.v0}" title="Initial velocity as fraction of light speed (-1 to 1)"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${o.size}" title="Visual size of the clock"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th title="Proper time when acceleration changes">τ (s)</th><th title="Acceleration value">a</th><th class="actions"></th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row" title="Add new acceleration command">Add Command</button></div></div></details>`;
+    card.innerHTML = clockCardTemplate(o, colorHex(o.color));
     const nm = card.querySelector('.nm');
     nm.addEventListener('input', e => {
         o.name = e.target.value;
@@ -111,7 +113,7 @@ export function renderClock(o, idx, appState, callbacks) {
         o.prog.slice().forEach((row, rIdx) => {
             const [tau, a] = row;
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="tau" contenteditable="true" title="Proper time when acceleration changes">${tau}</td><td class="acc" contenteditable="true" title="Acceleration value">${a}</td><td class="actions"><button class="ins" title="Insert new command after this one">＋</button><button class="rm" title="Delete this command">🗑</button></td>`;
+            tr.innerHTML = accelerationRowTemplate(tau, a);
             const tauCell = tr.querySelector('.tau');
             const accCell = tr.querySelector('.acc');
 
@@ -187,7 +189,7 @@ export function renderGrid(o, idx, appState, callbacks) {
     const card = document.createElement('div');
     card.className = 'obj-card';
     const t = o.template;
-    card.innerHTML = `<details open><summary class="hdr"><span class="obj-type">Grid:</span><input class="nm" type="text" value="${o.name}" title="Grid name (must be unique)"><input class="color" type="color" value="${colorHex(t.color)}" title="Display color for all clocks in grid"><button class="del" title="Delete this grid">🗑</button></summary><div class="kv"><label>count</label><input class="count" type="number" step="1" min="1" value="${o.count}" title="Number of clocks in the grid"><label>spacing</label><input class="spacing" type="number" step="0.01" value="${o.spacing}" title="Distance between adjacent clocks"></div><details><summary>Template Clock</summary><div class="kv"><label>x₀</label><input class="x0" type="number" step="0.01" value="${t.x0}" title="Initial position of first clock"><label>t₀</label><input class="t0" type="number" step="0.01" min="0" value="${t.t0}" title="Initial proper time offset"><label>Vertical position</label><input class="y0" type="number" step="0.01" value="${t.y0}" title="Vertical position in animation view (no physical meaning)"><label>v₀</label><input class="v0" type="number" step="0.001" min="-1" max="1" value="${t.v0}" title="Initial velocity for all clocks (-1 to 1)"><label>size</label><input class="size" type="number" step="0.5" min="1" value="${t.size}" title="Visual size of all clocks"></div><div class="accel-wrap"><label class="accel-label">Acceleration Commands</label><table class="accel"><thead><tr><th title="Proper time when acceleration changes">τ (s)</th><th title="Acceleration value">a</th><th class="actions"></th></tr></thead><tbody class="accel-body"></tbody></table><div class="row"><button class="add-row" title="Add new acceleration command">Add Command</button></div></div></details></details>`;
+    card.innerHTML = gridCardTemplate(o, t, colorHex(t.color));
     card.querySelector('.nm').addEventListener('input', e => {
         o.name = e.target.value;
         markDirty();
@@ -235,7 +237,7 @@ export function renderGrid(o, idx, appState, callbacks) {
         t.prog.slice().forEach((row, rIdx) => {
             const [tau, a] = row;
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="tau" contenteditable="true" title="Proper time when acceleration changes">${tau}</td><td class="acc" contenteditable="true" title="Acceleration value">${a}</td><td class="actions"><button class="ins" title="Insert new command after this one">＋</button><button class="rm" title="Delete this command">🗑</button></td>`;
+            tr.innerHTML = accelerationRowTemplate(tau, a);
             const tauCell = tr.querySelector('.tau');
             const accCell = tr.querySelector('.acc');
 

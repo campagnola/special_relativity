@@ -39,7 +39,6 @@
         <summary>Simulation</summary>
         <div class="row"><label for="dur">Duration</label><input id="dur" type="number" min="0.1" step="0.1" value="20.0" title="Total simulation time in arbitrary units"></div>
         <div class="row"><label for="speed">Animation Speed</label><input id="speed" type="range" min="0" max="100" value="50" title="Animation playback speed (0.01x to 100x normal speed)"><span id="speed-label">1.0x</span></div>
-        <div class="row"><label for="reference">Reference Frame</label><select id="reference" title="Choose which clock's reference frame to view from"></select></div>
         <div class="row"><label for="animate">Animate</label><input id="animate" type="checkbox" checked title="Toggle real-time animation on/off"></div>
         <div class="row"><label for="time-slider">Time</label><input id="time-slider" type="range" min="0" max="10" step="0.01" value="0" title="Manually scrub through simulation time"></div>
       </details>
@@ -55,77 +54,28 @@
     </aside>
     <main>
       <section class="panel">
-        <h2 id="inertial-label" class="frame-label">Inertial (lab) Frame [ t=0.0 ]</h2>
-        <canvas id="plot-inertial"></canvas>
-        <canvas id="anim-inertial"></canvas>
+        <div class="frame-header">
+          <select id="left-reference" title="Choose reference frame for left column">
+            <option value="">Inertial (lab)</option>
+          </select>
+          <span id="left-time" class="frame-time">[ t=0.0 ]</span>
+        </div>
+        <canvas id="plot-left"></canvas>
+        <canvas id="anim-left"></canvas>
       </section>
       <section class="panel">
-        <h2 id="ref-label" class="frame-label">Reference Frame [ t=0.0 ]</h2>
-        <canvas id="plot-ref"></canvas>
-        <canvas id="anim-ref"></canvas>
+        <div class="frame-header">
+          <select id="right-reference" title="Choose reference frame for right column">
+            <option value="">Inertial (lab)</option>
+          </select>
+          <span id="right-time" class="frame-time">[ t=0.0 ]</span>
+        </div>
+        <canvas id="plot-right"></canvas>
+        <canvas id="anim-right"></canvas>
       </section>
     </main>
   </div>
 
-  <!-- Help Modal -->
-  <div id="help-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>How to Use the Relativity Simulator</h2>
-        <button id="help-close" class="close-btn">×</button>
-      </div>
-      <div class="modal-body">
-        <h3>📊 Worldline Plots (Top Panels)</h3>
-        <p>Show spacetime diagrams where:</p>
-        <ul>
-          <li><strong>Horizontal axis:</strong> Position in space</li>
-          <li><strong>Vertical axis:</strong> Time</li>
-          <li><strong>Straight lines:</strong> Constant velocity motion</li>
-          <li><strong>Curved lines:</strong> Acceleration</li>
-          <li><strong>Dots:</strong> Proper time tick marks (black = forward, gray = backward)</li>
-          <li><strong>Dashed line:</strong> Line of simultaneity in reference frame</li>
-          <li><strong>Colored dots:</strong> Current positions of all clocks</li>
-        </ul>
-
-        <h3>🎬 1D Animation (Bottom Panels)</h3>
-        <p>Real-time visualization showing:</p>
-        <ul>
-          <li><strong>Clocks:</strong> Colored circles representing objects</li>
-          <li><strong>Length contraction:</strong> Moving clocks appear compressed</li>
-          <li><strong>Proper time:</strong> Numbers next to clocks show their experienced time</li>
-          <li><strong>Force arrows:</strong> Orange triangles indicate acceleration</li>
-        </ul>
-
-        <h3>⚙️ Controls</h3>
-        <ul>
-          <li><strong>Duration:</strong> Total simulation time</li>
-          <li><strong>Animation Speed:</strong> Playback rate (0.0001x to 10x)</li>
-          <li><strong>Reference Frame:</strong> Choose viewing perspective</li>
-          <li><strong>Time Slider:</strong> Scrub through animation manually</li>
-        </ul>
-
-        <h3>🕐 Creating Objects</h3>
-        <p><strong>Clocks:</strong> Individual objects with acceleration programs</p>
-        <p><strong>Grids:</strong> Arrays of synchronized clocks</p>
-
-        <h3>🚀 Acceleration Programming</h3>
-        <p>Define motion with time-acceleration pairs:</p>
-        <ul>
-          <li><strong>τ (proper time):</strong> When to change acceleration</li>
-          <li><strong>a (acceleration):</strong> New acceleration value</li>
-        </ul>
-        <p>Example: [(0, 0.5), (3, 0), (8, -0.5)] = accelerate → coast → decelerate</p>
-
-        <h3>🔬 Physics Concepts</h3>
-        <ul>
-          <li><strong>Twin Paradox:</strong> Traveling twin ages slower</li>
-          <li><strong>Simultaneity:</strong> "Now" depends on reference frame</li>
-          <li><strong>Time Dilation:</strong> Moving clocks run slower</li>
-          <li><strong>Length Contraction:</strong> Moving objects appear shorter</li>
-        </ul>
-      </div>
-    </div>
-  </div>
 
   <script type="module" src="main.js"></script>
 </body>
