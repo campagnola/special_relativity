@@ -127,9 +127,9 @@ export function makeAnimCanvas(canvas) {
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // clock hand: rotates at -0.25*pt*360°  => angle = -0.5π * pt
+            // clock hand: rotates at 0.25*pt*360°  => angle = 0.5π * pt
             // Python: setPen(pg.mkPen('w')) (white)
-            const theta = -0.5 * Math.PI * pt;
+            const theta = 0.5 * Math.PI * pt;
             const handR = baseR * 0.9;
             ctx.beginPath();
             ctx.moveTo(0, 0);
