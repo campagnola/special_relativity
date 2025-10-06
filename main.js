@@ -598,7 +598,10 @@ let wasAnimatingBeforeDrag = false;
 // animation loop
 let rafId = 0;
 let lastAnimTime = performance.now() / 1000;
+let lastDrawTime = 0;
 let animTime = 0;
+const TARGET_FPS = 60;
+const FRAME_TIME = 1000 / TARGET_FPS;
 
 function updateColumnVisuals(columnKey, plot, anim) {
     const plots = appState._plots;
@@ -642,11 +645,12 @@ function updateFrameLabels() {
 }
 
 function tick() {
-    const now = performance.now() / 1000;
+    const now = performance.now();
+    const nowSec = now / 1000;
 
     // Only advance time if not dragging slider
     if (!sliderDragging) {
-        const dt = (now - lastAnimTime) * appState.animSpeed;
+        const dt = (nowSec - lastAnimTime) * appState.animSpeed;
         animTime += dt;
 
         // Reset animation time when exceeding duration (like Python)
@@ -655,21 +659,28 @@ function tick() {
         }
     }
 
-    lastAnimTime = now;
+    lastAnimTime = nowSec;
 
-    // Update slider position if not being dragged
-    if (!sliderDragging) {
-        const timeSlider = document.getElementById('time-slider');
-        timeSlider.value = animTime;
+    // Limit to 60fps for visual updates
+    if (now - lastDrawTime >= FRAME_TIME) {
+        lastDrawTime = now;
+
+        // Update slider position if not being dragged
+        if (!sliderDragging) {
+            const timeSlider = document.getElementById('time-slider');
+            timeSlider.value = animTime;
+        }
+
+        updateVisuals();
     }
 
-    updateVisuals();
     rafId = appState.animate ? requestAnimationFrame(tick) : 0;
 }
 
 function rafStart() {
     if (!rafId && appState.animate) {
         lastAnimTime = performance.now() / 1000;
+        lastDrawTime = performance.now();
         rafId = requestAnimationFrame(tick);
     }
 }
