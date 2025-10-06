@@ -254,51 +254,6 @@ export class Simulation {
         this.refClock = clocks.find(c => c.name === refName) || clocks[0] || null;
         this.durationRef = duration;
     }
-    runInertial() {
-        const n = this.frames;
-        this.clocks.forEach(c => {
-            c.resetToInitial();
-            c.allocBuffers(n);
-            c.refx = c.x;
-            c.refv = c.v;
-            c.reft = c.t;
-            c.recordInert(0);
-            c.recordRef(0);
-        });
-        const dt = this.dt;
-        for (let i = 1; i < n; i++) {
-            const nextT = i * dt;
-            for (const c of this.clocks) {
-                while (c.t < nextT - 1e-12) {
-                    const {
-                        tau2
-                    } = c.accelLimits();
-                    const g = c.accelAt(c.pt);
-                    const st = hypTStep(dt, c.v, c.x, c.pt, g);
-                    if (st.tau > tau2 + 1e-12) {
-                        const dTau = tau2 - c.pt;
-                        const s2 = tauStep(dTau, c.v, c.x, c.t, g);
-                        c.v = s2.v;
-                        c.x = s2.x;
-                        c.t = s2.t;
-                        c.pt = tau2;
-                    } else {
-                        c.v = st.v;
-                        c.x = st.x;
-                        c.pt = st.tau;
-                        c.t += dt;
-                    }
-                }
-                c.refx = c.x;
-                c.refv = c.v;
-                c.reft = c.t;
-                c.recordInert(i);
-                c.recordRef(i);
-            }
-        }
-        if (this.refClock) this.durationRef = this.refClock.inert.pt[n - 1];
-        return n;
-    }
     runReference() {
         const n = this.frames;
         if (!this.refClock) return n;
@@ -388,6 +343,9 @@ export class Simulation {
         const dots = [];
 
         for (const cl of this.clocks) {
+            // Skip the hidden Inertial clock in plots
+            if (cl.name === 'Inertial') continue;
+
             const { curve, points } = cl.getCurve(ref);
 
             // Add curve
@@ -427,27 +385,17 @@ export class Simulation {
         return plotData;
     }
 
-    // Orchestrator matching Python's Simulation.run(): returns two sims (inertial, reference)
-    static runAll(objects, refName, duration, dt) {
-        const sim1 = new Simulation({
+    // Simplified physics engine: only reference frame simulation needed
+    // The "Inertial" clock with empty acceleration program provides the inertial frame
+    static runSingleReference(objects, refName, duration, dt) {
+        const sim = new Simulation({
             clocks: objects.map(o => new Clock(o)),
             refName,
             duration,
             dt
         });
-        sim1.runInertial();
-        const durationRef = sim1.refClock ? sim1.refClock.inert.pt[sim1.frames - 1] : duration;
-        const sim2 = new Simulation({
-            clocks: objects.map(o => new Clock(o)),
-            refName,
-            duration: durationRef,
-            dt
-        });
-        sim2.runReference();
-        return {
-            sim1,
-            sim2
-        };
+        sim.runReference();
+        return sim;
     }
 }
 
@@ -464,6 +412,21 @@ export function expandToClocks(objects) {
         nameSet.add(nm);
         return nm;
     };
+
+    // Always add the hidden "Inertial" clock first
+    out.push(new Clock({
+        type: 'clock',
+        name: 'Inertial',
+        x0: 0,
+        y0: 0,
+        v0: 0,
+        m0: 1,
+        t0: 0,
+        size: 12,
+        color: [0.5, 0.5, 0.5], // Gray color, though it won't be visible
+        prog: [] // Empty acceleration program = inertial frame
+    }));
+
     for (const o of objects) {
         if (o.type === 'clock') {
             out.push(new Clock(o));

@@ -2,7 +2,7 @@
 // ABOUTME: Integrates all modules and manages the application state and event handlers
 
 import { Simulation, expandToClocks } from './simulation.js';
-import { makeWorldlinePlot, getSpaceline } from './plotting.js';
+import { makeWorldlinePlot, getAllSpacelines } from './plotting.js';
 import { makeAnimCanvas } from './animation.js';
 import { clockDefaults, gridDefaults, validate, renderClock, renderGrid } from './controls.js';
 import { loadHelpModal } from './templates.js';
@@ -12,7 +12,7 @@ const defaultPresets = {
     'Twin Paradox (grid)': {
         duration: 27.0,
         animSpeed: 1.0,
-        leftReference: '',
+        leftReference: 'Inertial',
         rightReference: 'Alice',
         animate: true,
         objects: [
@@ -139,13 +139,13 @@ function loadState(state) {
         appState.leftReference = state.leftReference;
         appState.rightReference = state.rightReference;
     } else if (state.reference !== undefined) {
-        // Legacy single reference format - put inertial on left, reference on right
-        appState.leftReference = '';
-        appState.rightReference = state.reference || '';
+        // Legacy single reference format - put Inertial on left, reference on right
+        appState.leftReference = 'Inertial';
+        appState.rightReference = state.reference || 'Inertial';
     } else {
         // Default fallback
-        appState.leftReference = '';
-        appState.rightReference = '';
+        appState.leftReference = 'Inertial';
+        appState.rightReference = 'Inertial';
     }
 
     // Update UI to reflect loaded values
@@ -163,28 +163,25 @@ function recalculate() {
     try {
         const res = runPipeline();
 
-        // Extract sims for each column - use sim2 if a reference is selected, sim1 for inertial
-        const leftUseRef = !!appState.leftReference;
-        const rightUseRef = !!appState.rightReference;
-
-        const leftSim = leftUseRef ? res.left.sim2 : res.left.sim1;
-        const rightSim = rightUseRef ? res.right.sim2 : res.right.sim1;
+        // Each column has a simulation run in its selected reference frame
+        const leftSim = res.left;
+        const rightSim = res.right;
 
         // Plot to each column
-        leftSim.plot(plotLeft, leftUseRef);
-        rightSim.plot(plotRight, rightUseRef);
+        leftSim.plot(plotLeft, true);
+        rightSim.plot(plotRight, true);
 
         // Store plot data for updateVisuals
         appState._plots = {
-            left: { sim: leftSim, isRef: leftUseRef },
-            right: { sim: rightSim, isRef: rightUseRef }
+            left: { sim: leftSim, isRef: true },
+            right: { sim: rightSim, isRef: true }
         };
 
         // Set spacelines and animation
-        plotLeft.setSpaceline(getSpaceline(leftSim, leftUseRef ? 'ref' : 'inert', 0));
-        plotRight.setSpaceline(getSpaceline(rightSim, rightUseRef ? 'ref' : 'inert', 0));
-        animLeft.setSim(leftSim, leftUseRef ? 'ref' : 'inert');
-        animRight.setSim(rightSim, rightUseRef ? 'ref' : 'inert');
+        plotLeft.setSpacelines(getAllSpacelines(leftSim, 'ref', 0, appState.leftReference, appState.rightReference, appState.leftReference));
+        plotRight.setSpacelines(getAllSpacelines(rightSim, 'ref', 0, appState.leftReference, appState.rightReference, appState.rightReference));
+        animLeft.setSim(leftSim, 'ref');
+        animRight.setSim(rightSim, 'ref');
     } catch (e) {
         console.error(e);
         alert('Simulation pipeline failed: ' + (e?.message || e));
@@ -195,8 +192,8 @@ function recalculate() {
 const appState = {
     duration: 10.0, // Python default
     animSpeed: 1,
-    leftReference: '', // Empty string means inertial frame
-    rightReference: '', // Empty string means inertial frame
+    leftReference: 'Inertial', // Default to Inertial clock
+    rightReference: 'Inertial', // Default to Inertial clock
     objects: [], // Start empty like Python
     animate: true
 };
@@ -217,16 +214,14 @@ function runPipeline() {
     const dtBase = 0.016;
     const dt = dtBase * Math.max(0.0001, appState.animSpeed);
 
-    // Run simulations for both left and right columns
-    const leftRef = appState.leftReference || null;
-    const rightRef = appState.rightReference || null;
-
-    const leftSims = Simulation.runAll(objects, leftRef, appState.duration, dt);
-    const rightSims = Simulation.runAll(objects, rightRef, appState.duration, dt);
+    // Run reference simulations for both left and right columns
+    // Note: "Inertial" is now just another clock with empty acceleration program
+    const leftSim = Simulation.runSingleReference(objects, appState.leftReference, appState.duration, dt);
+    const rightSim = Simulation.runSingleReference(objects, appState.rightReference, appState.duration, dt);
 
     appState.results = {
-        left: leftSims,
-        right: rightSims
+        left: leftSim,
+        right: rightSim
     };
     return appState.results;
 }
@@ -239,24 +234,25 @@ const rightRefSelect = $('right-reference');
 const errBox = $('obj-errors');
 
 function populateReferenceSelect(selectElement, currentValue) {
-    const clocks = appState.objects.filter(o => o.type === 'clock');
+    // Get all clocks from the expanded list (includes hidden Inertial clock)
+    const allClocks = expandToClocks(appState.objects);
 
-    // Clear and add inertial option
-    selectElement.innerHTML = '<option value="">Inertial (lab)</option>';
+    // Clear select
+    selectElement.innerHTML = '';
 
-    // Add clock options
-    clocks.forEach(c => {
+    // Add all clocks as options
+    allClocks.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.name;
-        opt.textContent = c.name;
+        opt.textContent = c.name === 'Inertial' ? 'Inertial (lab)' : c.name;
         selectElement.appendChild(opt);
     });
 
     // Set current value if valid
-    if (currentValue && clocks.some(c => c.name === currentValue)) {
+    if (currentValue && allClocks.some(c => c.name === currentValue)) {
         selectElement.value = currentValue;
     } else {
-        selectElement.value = '';
+        selectElement.value = 'Inertial'; // Default to Inertial instead of empty
     }
 }
 
@@ -611,16 +607,19 @@ function updateColumnVisuals(columnKey, plot, anim) {
     const { sim, isRef } = plots[columnKey];
     const i = Math.min(sim.frames - 1, Math.floor(animTime / sim.dt));
     const frameType = isRef ? 'ref' : 'inert';
+    const currentRef = columnKey === 'left' ? appState.leftReference : appState.rightReference;
 
-    plot.setSpaceline(getSpaceline(sim, frameType, i));
+    plot.setSpacelines(getAllSpacelines(sim, frameType, i, appState.leftReference, appState.rightReference, currentRef));
 
-    // Calculate current position markers for all clocks
-    const markers = sim.clocks.map(clock => {
-        const buffer = isRef ? clock.ref : clock.inert;
-        const x = buffer.x[i];
-        const t = buffer.t[i];
-        return { x, t, color: clock.colorCss(), size: clock.size };
-    });
+    // Calculate current position markers for all clocks (excluding hidden Inertial clock)
+    const markers = sim.clocks
+        .filter(clock => clock.name !== 'Inertial')
+        .map(clock => {
+            const buffer = isRef ? clock.ref : clock.inert;
+            const x = buffer.x[i];
+            const t = buffer.t[i];
+            return { x, t, color: clock.colorCss(), size: clock.size };
+        });
     plot.setCurrentMarkers(markers);
     anim.draw(animTime);
 }

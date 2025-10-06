@@ -29,6 +29,7 @@ export function makeWorldlinePlot(canvas) {
         lines: [],
         dots: [],
         spaceline: null,
+        spacelines: [],
         currentMarkers: []
     };
     let view = {
@@ -232,80 +233,83 @@ export function makeWorldlinePlot(canvas) {
     }
 
     function drawSpaceline() {
-        const sl = data.spaceline;
-        if (!sl) return;
-        const {
-            x0,
-            y0,
-            v,
-            color
-        } = sl;
-        const xmin = view.xmin,
-            xmax = view.xmax,
-            ymin = view.ymin,
-            ymax = view.ymax;
+        const spacelines = data.spacelines || (data.spaceline ? [data.spaceline] : []);
+        if (spacelines.length === 0) return;
 
-        // Reference clock position in screen coordinates
-        const [refPx, refPy] = worldToPx(x0, y0);
+        for (const sl of spacelines) {
+            const {
+                x0,
+                y0,
+                v,
+                color
+            } = sl;
+            const xmin = view.xmin,
+                xmax = view.xmax,
+                ymin = view.ymin,
+                ymax = view.ymax;
 
-        // Find intersection points with view boundaries
-        const pts = [];
-        const atX = x => y0 + v * (x - x0);
-        const atT = t => x0 + (t - y0) / v;
-        const tL = atX(xmin),
-            tR = atX(xmax);
-        if (tL <= ymax && tL >= ymin) pts.push([xmin, tL]);
-        if (tR <= ymax && tR >= ymin) pts.push([xmax, tR]);
-        if (Math.abs(v) > 1e-12) {
-            const xB = atT(ymin),
-                xT = atT(ymax);
-            if (xB >= xmin && xB <= xmax) pts.push([xB, ymin]);
-            if (xT >= xmin && xT <= xmax) pts.push([xT, ymax]);
+            // Reference clock position in screen coordinates
+            const [refPx, refPy] = worldToPx(x0, y0);
+
+            // Find intersection points with view boundaries
+            const pts = [];
+            const atX = x => y0 + v * (x - x0);
+            const atT = t => x0 + (t - y0) / v;
+            const tL = atX(xmin),
+                tR = atX(xmax);
+            if (tL <= ymax && tL >= ymin) pts.push([xmin, tL]);
+            if (tR <= ymax && tR >= ymin) pts.push([xmax, tR]);
+            if (Math.abs(v) > 1e-12) {
+                const xB = atT(ymin),
+                    xT = atT(ymax);
+                if (xB >= xmin && xB <= xmax) pts.push([xB, ymin]);
+                if (xT >= xmin && xT <= xmax) pts.push([xT, ymax]);
+            }
+            if (pts.length < 2) continue;
+
+            // Sort points and convert to screen coordinates
+            pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            const screenPts = pts.map(p => worldToPx(p[0], p[1]));
+
+            // Find the leftmost and rightmost points
+            const leftPt = screenPts[0];
+            const rightPt = screenPts[screenPts.length - 1];
+
+            // Use reference object color but make it lighter
+            const lightenColor = (colorStr) => {
+                if (!colorStr) return '#7adfff'; // fallback to original color
+                // Parse rgba() format
+                const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+                if (!match) return '#7adfff'; // fallback
+                const [, r, g, b] = match.map(Number);
+                // Lighten by mixing with white (increase RGB values towards 255)
+                const lighten = (c) => Math.round(c + (255 - c) * 0.6);
+                return `rgb(${lighten(r)}, ${lighten(g)}, ${lighten(b)})`;
+            };
+
+            ctx.strokeStyle = lightenColor(color);
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+
+            // Draw two separate lines from reference position to avoid dash shifting
+            // Line from reference to left boundary
+            if (leftPt[0] < refPx) {
+                ctx.beginPath();
+                ctx.moveTo(refPx, refPy);
+                ctx.lineTo(leftPt[0], leftPt[1]);
+                ctx.stroke();
+            }
+
+            // Line from reference to right boundary
+            if (rightPt[0] > refPx) {
+                ctx.beginPath();
+                ctx.moveTo(refPx, refPy);
+                ctx.lineTo(rightPt[0], rightPt[1]);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
         }
-        if (pts.length < 2) return;
-
-        // Sort points and convert to screen coordinates
-        pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-        const screenPts = pts.map(p => worldToPx(p[0], p[1]));
-
-        // Find the leftmost and rightmost points
-        const leftPt = screenPts[0];
-        const rightPt = screenPts[screenPts.length - 1];
-
-        // Use reference object color but make it lighter
-        const lightenColor = (colorStr) => {
-            if (!colorStr) return '#7adfff'; // fallback to original color
-            // Parse rgba() format
-            const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-            if (!match) return '#7adfff'; // fallback
-            const [, r, g, b] = match.map(Number);
-            // Lighten by mixing with white (increase RGB values towards 255)
-            const lighten = (c) => Math.round(c + (255 - c) * 0.6);
-            return `rgb(${lighten(r)}, ${lighten(g)}, ${lighten(b)})`;
-        };
-
-        ctx.strokeStyle = lightenColor(color);
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-
-        // Draw two separate lines from reference position to avoid dash shifting
-        // Line from reference to left boundary
-        if (leftPt[0] < refPx) {
-            ctx.beginPath();
-            ctx.moveTo(refPx, refPy);
-            ctx.lineTo(leftPt[0], leftPt[1]);
-            ctx.stroke();
-        }
-
-        // Line from reference to right boundary
-        if (rightPt[0] > refPx) {
-            ctx.beginPath();
-            ctx.moveTo(refPx, refPy);
-            ctx.lineTo(rightPt[0], rightPt[1]);
-            ctx.stroke();
-        }
-
-        ctx.setLineDash([]);
     }
 
     function draw() {
@@ -331,12 +335,17 @@ export function makeWorldlinePlot(canvas) {
                 lines: [],
                 dots: [],
                 spaceline: null,
+                spacelines: [],
                 currentMarkers: []
             }, d || {});
             draw();
         },
         setSpaceline(sl) {
             data.spaceline = sl || null;
+            draw();
+        },
+        setSpacelines(spacelines) {
+            data.spacelines = spacelines || [];
             draw();
         },
         setCurrentMarkers(markers) {
@@ -405,11 +414,61 @@ export function getSpaceline(sim, mode, i) {
     const idx = Math.max(0, Math.min(n - 1, i | 0));
     const x0 = b.x[idx];
     const y0 = b.t[idx];
-    const v = (mode === 'inert') ? b.v[idx] : 0;
+    const v = b.v[idx];
     return {
         x0,
         y0,
         v,
         color: ref.colorCss()
     };
+}
+
+export function getAllSpacelines(sim, mode, i, leftRefName, rightRefName, currentRefName) {
+    const spacelines = [];
+    const idx = Math.max(0, Math.min(sim.frames - 1, i | 0));
+
+    // Find the clocks for both reference frames
+    const leftRefClock = sim.clocks.find(c => c.name === leftRefName);
+    const rightRefClock = sim.clocks.find(c => c.name === rightRefName);
+
+    // Helper function to check if we can draw a spaceline
+    const canDraw = (observerName) => {
+        // Case 1: Simultaneity line for the reference observer (always horizontal)
+        if (observerName === currentRefName) return true;
+
+        // Case 2: Reference frame is inertial (empty acceleration program), any other observer's line is straight
+        const currentRefClock = sim.clocks.find(c => c.name === currentRefName);
+        if (currentRefClock && (!currentRefClock.prog || currentRefClock.prog.length === 0)) return true;
+
+        // Case 3: All other cases cannot be drawn (would be curved)
+        return false;
+    };
+
+    if (leftRefClock && canDraw(leftRefName)) {
+        const b = (mode === 'inert') ? leftRefClock.inert : leftRefClock.ref;
+        if (b.x.length > idx) {
+            spacelines.push({
+                x0: b.x[idx],
+                y0: b.t[idx],
+                v: b.v[idx],
+                color: leftRefClock.colorCss(),
+                name: leftRefName
+            });
+        }
+    }
+
+    if (rightRefClock && rightRefName !== leftRefName && canDraw(rightRefName)) {
+        const b = (mode === 'inert') ? rightRefClock.inert : rightRefClock.ref;
+        if (b.x.length > idx) {
+            spacelines.push({
+                x0: b.x[idx],
+                y0: b.t[idx],
+                v: b.v[idx],
+                color: rightRefClock.colorCss(),
+                name: rightRefName
+            });
+        }
+    }
+
+    return spacelines;
 }

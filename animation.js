@@ -41,7 +41,8 @@ export function makeAnimCanvas(canvas) {
         const idx = Math.min(n - 1, Math.floor(t / dt));
         const buffers = mode === 'inert' ? 'inert' : 'ref';
         // Use actual y0 values for vertical positioning, exactly like Python setPos(x, y0)
-        const clocks = sim.clocks;
+        // Filter out the hidden Inertial clock
+        const clocks = sim.clocks.filter(c => c.name !== 'Inertial');
 
         // Find range of y0 values to map to screen space
         let ymin = Infinity, ymax = -Infinity;
